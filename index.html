@@ -1,0 +1,1996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nine Lives — Melody Event</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#C9A84C;--gold-light:#F0D080;--gold-dim:#8A6A28;--bg:#0D0F14;--bg2:#13161E;--bg3:#1A1E2A;--bg4:#222736;--border:rgba(201,168,76,0.18);--border-h:rgba(201,168,76,0.4);--text:#E8E0CC;--text-dim:#8A8070;--red:#C04040;--red-bg:rgba(192,64,64,0.12);--green:#4A9C6E;--green-bg:rgba(74,156,110,0.12);--blue:#4A7FC0;--blue-bg:rgba(74,127,192,0.12);--radius:10px;--radius-sm:6px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;line-height:1.6}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--gold-dim);border-radius:2px}
+.auth-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.auth-card{width:100%;max-width:420px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:32px}
+.auth-icon{text-align:center;font-size:40px;margin-bottom:12px}
+.auth-title{font-family:'Cinzel',serif;font-size:20px;color:var(--gold);text-align:center;margin-bottom:4px}
+.auth-sub{color:var(--text-dim);font-size:13px;text-align:center;margin-bottom:24px}
+.header{padding:14px 24px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);position:sticky;top:0;z-index:50}
+.header-title{font-family:'Cinzel',serif;font-size:15px;color:var(--gold);letter-spacing:0.04em}
+.header-sub{font-size:11px;color:var(--text-dim);margin-top:1px}
+.main{padding:24px 40px;max-width:1100px;width:100%;margin:0 auto}
+.tab-bar{display:flex;gap:2px;border-bottom:0.5px solid var(--border);margin-bottom:20px;overflow-x:auto}
+.tab-bar::-webkit-scrollbar{height:2px}
+.tab{padding:9px 16px;font-size:13px;cursor:pointer;border:none;background:none;color:var(--text-dim);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;font-family:'Inter',sans-serif;transition:color .15s}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.tab:hover:not(.active){color:var(--text)}
+label.lbl{display:block;font-size:11px;color:var(--text-dim);margin-bottom:5px;letter-spacing:.05em;text-transform:uppercase}
+input,select,textarea{width:100%;padding:9px 12px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;font-family:'Inter',sans-serif;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold-dim)}
+select option{background:var(--bg3)}
+textarea{resize:vertical;min-height:80px}
+.fg{margin-bottom:14px}
+.btn{padding:9px 18px;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;border:0.5px solid var(--border);background:transparent;color:var(--text);transition:all .15s}
+.btn:hover{border-color:var(--border-h);background:var(--bg3)}
+.btn:active{transform:scale(.98)}
+.btn-gold{background:var(--gold);color:#0D0F14;border-color:var(--gold);font-weight:500}
+.btn-gold:hover{background:var(--gold-light);border-color:var(--gold-light);color:#0D0F14}
+.btn-danger{border-color:rgba(192,64,64,.4);color:var(--red)}
+.btn-danger:hover{background:var(--red-bg)}
+.btn-success{border-color:rgba(74,156,110,.4);color:var(--green)}
+.btn-success:hover{background:var(--green-bg)}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-full{width:100%}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+.card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:12px}
+.stats-grid{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center}
+.stat-label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.stat-val{font-family:'Cinzel',serif;font-size:20px;color:var(--gold)}
+.stat-val.red{color:var(--red)}.stat-val.green{color:var(--green)}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;letter-spacing:.03em;text-transform:uppercase}
+.badge-open{background:var(--green-bg);color:var(--green);border:0.5px solid rgba(74,156,110,.3)}
+.badge-closed{background:var(--red-bg);color:var(--red);border:0.5px solid rgba(192,64,64,.3)}
+.badge-done{background:var(--blue-bg);color:var(--blue);border:0.5px solid rgba(74,127,192,.3)}
+.badge-pending{background:rgba(201,168,76,.1);color:var(--gold);border:0.5px solid rgba(201,168,76,.3)}
+.badge-walkover{background:rgba(136,135,128,.1);color:#888780;border:0.5px solid rgba(136,135,128,.3)}
+.alert{padding:10px 14px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:12px;border:0.5px solid}
+.alert-info{background:var(--blue-bg);color:#7AAFEE;border-color:rgba(74,127,192,.3)}
+.alert-success{background:var(--green-bg);color:#7ACCA0;border-color:rgba(74,156,110,.3)}
+.alert-danger{background:var(--red-bg);color:#EE8A8A;border-color:rgba(192,64,64,.3)}
+.alert-gold{background:rgba(201,168,76,.08);color:var(--gold);border-color:rgba(201,168,76,.25)}
+.match-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:10px;transition:border-color .15s}
+.match-card:hover{border-color:var(--border-h)}
+.match-vs{display:flex;align-items:center;justify-content:center;gap:14px;margin:10px 0}
+.match-player{text-align:center;flex:1}
+.match-player-name{font-family:'Cinzel',serif;font-size:14px}
+.match-player-name.winner{color:var(--gold)}
+.match-pot{font-size:11px;color:var(--text-dim);margin-top:2px}
+.vs-sep{font-size:11px;color:var(--text-dim);letter-spacing:.1em}
+.tbl-wrap{border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 14px;border-bottom:0.5px solid var(--border);font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;background:var(--bg3);font-weight:500}
+td{padding:10px 14px;border-bottom:0.5px solid rgba(201,168,76,.07)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(201,168,76,.03)}
+/* Collapsible round section */
+.round-header{display:flex;align-items:center;justify-content:space-between;padding:8px 0;cursor:pointer;user-select:none;margin:16px 0 8px;border-bottom:0.5px solid var(--border)}
+.round-header-label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em}
+.round-toggle{font-size:12px;color:var(--text-dim);padding:2px 8px;border:0.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg3)}
+.round-body{overflow:hidden;transition:max-height .3s ease}
+.round-body.collapsed{max-height:0!important}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px}
+.modal{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:24px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto}
+.modal-title{font-family:'Cinzel',serif;font-size:16px;color:var(--gold);margin-bottom:16px}
+.rank-cell{font-family:'Cinzel',serif;font-size:13px;color:var(--text-dim);width:28px}
+.rank-1{color:#F0D080}.rank-2{color:#B0B8C8}.rank-3{color:#C08040}
+.avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;border:0.5px solid;font-family:'Cinzel',serif}
+.row{display:flex;align-items:center;gap:8px}
+.row-between{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.hidden{display:none!important}
+.pin-wrap{display:flex;gap:12px;justify-content:center;margin:20px 0}
+.pin-dot{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--gold-dim);background:transparent;transition:background .15s}
+.pin-dot.filled{background:var(--gold)}
+.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:220px;margin:0 auto}
+.pin-key{padding:14px;border-radius:var(--radius-sm);font-size:18px;font-family:'Cinzel',serif;text-align:center;cursor:pointer;border:0.5px solid var(--border);background:var(--bg3);color:var(--text);transition:all .15s}
+.pin-key:hover{border-color:var(--border-h);background:var(--bg4)}
+.pin-key:active{transform:scale(.95)}
+.audience-tag{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:0.5px solid var(--border);border-radius:20px;padding:4px 10px;font-size:12px;margin:3px}
+.audience-tag.present{border-color:rgba(74,156,110,.4);color:var(--green)}
+@media(max-width:520px){.stats-grid{grid-template-columns:1fr 1fr}.main{padding:14px 16px}}
+@media(min-width:768px){
+  .match-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+  .match-grid .match-card{margin-bottom:12px}
+  .tbl-wrap table{font-size:14px}
+  .modal{max-width:520px}
+  .auth-card{padding:40px}
+}
+</style>
+</head>
+<body>
+<div id="loading-screen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;background:#0D0F14">
+  <div style="width:40px;height:40px;border:2px solid rgba(201,168,76,.18);border-top-color:#C9A84C;border-radius:50%;animation:spin .8s linear infinite"></div>
+  <div style="font-family:'Cinzel',serif;color:#C9A84C;font-size:16px">Nine Lives</div>
+  <div id="loading-msg" style="color:#8A8070;font-size:13px">Connecting to Firebase...</div>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen" class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-icon">🎵</div>
+    <div class="auth-title">Nine Lives</div>
+    <div class="auth-sub">Melody Event &nbsp;✦&nbsp; Cat Coin Exchange</div>
+    <div class="fg"><label class="lbl">Your guild name</label>
+      <select id="login-name-select"><option value="">— Select your name —</option></select></div>
+    <div id="login-error" class="alert alert-danger hidden"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-gold btn-full" onclick="startLogin()">Enter</button>
+      <button class="btn" onclick="showAdminLogin()" style="white-space:nowrap">Admin ⚙</button>
+    </div>
+    <div style="margin-top:12px;text-align:center;font-size:12px;color:var(--text-dim)">New member? <span style="color:var(--gold);cursor:pointer;text-decoration:underline" onclick="showRegister()">Register here</span></div>
+  </div>
+</div>
+
+<!-- REGISTER -->
+<div id="register-screen" class="auth-wrap hidden">
+  <div class="auth-card">
+    <div class="auth-icon">🐱</div>
+    <div class="auth-title">Create Account</div>
+    <div class="auth-sub">Set a 4-digit PIN — only you will know it</div>
+    <div class="fg"><label class="lbl">Guild name</label>
+      <input type="text" id="reg-name" placeholder="Your exact guild name..." /></div>
+    <div id="reg-pin-label" style="text-align:center;font-size:13px;color:var(--text-dim);margin-bottom:8px">Choose your PIN</div>
+    <div class="pin-wrap" id="reg-dots">
+      <div class="pin-dot" id="rd0"></div><div class="pin-dot" id="rd1"></div>
+      <div class="pin-dot" id="rd2"></div><div class="pin-dot" id="rd3"></div>
+    </div>
+    <div class="pin-keypad" id="reg-keypad"></div>
+    <div id="reg-error" class="alert alert-danger hidden" style="margin-top:12px"></div>
+    <button class="btn" style="width:100%;margin-top:12px" onclick="showLogin()">Back</button>
+  </div>
+</div>
+
+<!-- PIN LOGIN -->
+<div id="pin-screen" class="auth-wrap hidden">
+  <div class="auth-card">
+    <div class="auth-icon">🔑</div>
+    <div class="auth-title" id="pin-title">Welcome back</div>
+    <div class="auth-sub">Enter your 4-digit PIN</div>
+    <div class="pin-wrap" id="pin-dots">
+      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-keypad" id="pin-keypad"></div>
+    <div id="pin-error" class="alert alert-danger hidden" style="margin-top:12px"></div>
+    <button class="btn" style="width:100%;margin-top:12px" onclick="showLogin()">Back</button>
+  </div>
+</div>
+
+<!-- ADMIN LOGIN -->
+<div id="admin-login-screen" class="auth-wrap hidden">
+  <div class="auth-card">
+    <div class="auth-icon">🔐</div>
+    <div class="auth-title">Admin Access</div>
+    <div class="auth-sub">Restricted to guild officers</div>
+    <div class="fg"><label class="lbl">Password</label>
+      <input type="password" id="admin-pw" placeholder="Enter password..." onkeydown="if(event.key==='Enter')loginAdmin()" /></div>
+    <div id="admin-pw-error" class="alert alert-danger hidden"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="showLogin()">Back</button>
+      <button class="btn btn-gold btn-full" onclick="loginAdmin()">Login</button>
+    </div>
+  </div>
+</div>
+
+<!-- PLAYER SCREEN -->
+<div id="player-screen" class="hidden" style="min-height:100vh;display:flex;flex-direction:column">
+  <div class="header">
+    <div>
+      <div class="header-title">Nine Lives ✦ Melody Event <span class="sync-dot" id="sync-dot-p"></span></div>
+      <div class="header-sub" id="player-name-hdr"></div>
+    </div>
+    <button class="btn btn-sm" onclick="logout()">Log out</button>
+  </div>
+  <div class="main" style="flex:1">
+    <div class="stats-grid" id="player-stats"></div>
+    <div class="tab-bar">
+      <button class="tab active" onclick="playerTab(this,'p-matches')">Matches</button>
+      <button class="tab" onclick="playerTab(this,'p-leaderboard')">Leaderboard</button>
+      <button class="tab" onclick="playerTab(this,'p-mybets')">My Bets</button>
+      <button class="tab" onclick="playerTab(this,'p-bank')">Cat Bank</button>
+    </div>
+    <div id="p-matches"></div>
+    <div id="p-leaderboard" class="hidden"></div>
+    <div id="p-mybets" class="hidden"></div>
+    <div id="p-bank" class="hidden"></div>
+  </div>
+</div>
+
+<!-- ADMIN SCREEN -->
+<div id="admin-screen" class="hidden" style="min-height:100vh;display:flex;flex-direction:column">
+  <div class="header">
+    <div>
+      <div class="header-title">Admin Panel ✦ Nine Lives</div>
+      <div class="header-sub">Where Winds Meet</div>
+    </div>
+    <button class="btn btn-sm" onclick="logout()">Log out</button>
+  </div>
+  <div class="main" style="flex:1">
+    <div class="tab-bar">
+      <button class="tab active" onclick="adminTab(this,'a-matches')">Matches</button>
+      <button class="tab" onclick="adminTab(this,'a-players')">Players</button>
+      <button class="tab" onclick="adminTab(this,'a-bank')">Cat Bank</button>
+      <button class="tab" onclick="adminTab(this,'a-audience')">Audience</button>
+      <button class="tab" onclick="adminTab(this,'a-corrections')">Corrections</button>
+      <button class="tab" onclick="adminTab(this,'a-settings')">Settings</button>
+    </div>
+    <div id="a-matches"></div>
+    <div id="a-players" class="hidden"></div>
+    <div id="a-bank" class="hidden"></div>
+    <div id="a-audience" class="hidden"></div>
+    <div id="a-corrections" class="hidden"></div>
+    <div id="a-settings" class="hidden"></div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div id="bet-modal" class="modal-overlay hidden">
+  <div class="modal"><div class="modal-title">Place Bet</div><div id="bet-modal-content"></div></div>
+</div>
+<div id="add-match-modal" class="modal-overlay hidden">
+  <div class="modal"><div class="modal-title" id="add-match-title">Add Match</div><div id="add-match-content"></div></div>
+</div>
+<div id="add-player-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-title">Add Player</div>
+    <div class="fg"><label class="lbl">Name</label><input type="text" id="new-player-name" placeholder="Guild name..." /></div>
+    <div class="fg"><label class="lbl">Status</label>
+      <select id="new-player-status">
+        <option value="active">Active (competing)</option>
+        <option value="eliminated">Eliminated</option>
+        <option value="spectator">Spectator</option>
+      </select></div>
+    <div id="add-player-error" class="alert alert-danger hidden"></div>
+    <div class="btn-row" style="margin-top:4px">
+      <button class="btn" style="flex:1" onclick="closeModal('add-player-modal')">Cancel</button>
+      <button class="btn btn-gold" style="flex:1" onclick="submitAddPlayer()">Add Player</button>
+    </div>
+  </div>
+</div>
+<div id="adjust-modal" class="modal-overlay hidden">
+  <div class="modal"><div class="modal-title">Adjust Balance</div><div id="adjust-content"></div></div>
+</div>
+
+<script type="module">
+// Firebase
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const _app = initializeApp({
+  apiKey:"AIzaSyB27Beqxzc3LSbNTBLDOo82nEpTfwS7Cko",
+  authDomain:"nine-lives-melody-event.firebaseapp.com",
+  projectId:"nine-lives-melody-event",
+  storageBucket:"nine-lives-melody-event.firebasestorage.app",
+  messagingSenderId:"1058691276297",
+  appId:"1:1058691276297:web:fef5188e5329eaa1fca2d8"
+});
+const _db = getFirestore(_app);
+
+const ADMIN_PW="catwins2024";
+const BET_MULT=2,START_COINS=200;
+
+const _col={
+  players:()=>collection(_db,'players'),
+  matches:()=>collection(_db,'matches'),
+  bets:()=>collection(_db,'bets'),
+  loans:()=>collection(_db,'loans'),
+  adjustments:()=>collection(_db,'adjustments'),
+};
+const _cfgDoc=()=>doc(_db,'config','main');
+
+let isAdmin=false;
+let S={players:[],matches:[],bets:[],loans:[],adjustments:[],
+  loanRounds:[
+    {round:1,label:'Round 1 (24→12)',maxLoan:600,open:false},
+    {round:2,label:'Round 2 (12→6)',maxLoan:1000,open:true},
+    {round:3,label:'Round 3 (6→3)',maxLoan:0,open:false},
+    {round:4,label:'Final (Round Robin)',maxLoan:0,open:false}
+  ],
+  currentRound:2,pins:{},collapsedRounds:{'Round 1 (24→12)':true}
+};
+let _unsubs=[],_curPTab='p-matches',_curATab='a-matches';
+
+function _setSyncDot(st){['sync-dot-p','sync-dot-a'].forEach(id=>{const el=document.getElementById(id);if(el){el.className='sync-dot'+(st==='live'?' live':st==='saving'?' saving':'');}});}
+async function _fsSet(c,id,d){_setSyncDot('saving');await setDoc(doc(_db,c,id),d);_setSyncDot('live');}
+async function _fsUpd(c,id,d){_setSyncDot('saving');await updateDoc(doc(_db,c,id),d);_setSyncDot('live');}
+async function _fsDel(c,id){_setSyncDot('saving');await deleteDoc(doc(_db,c,id));_setSyncDot('live');}
+async function _fsCfg(d){_setSyncDot('saving');await updateDoc(_cfgDoc(),d);_setSyncDot('live');}
+
+function save(){}
+function load(){}
+
+async function initDefault(){
+  // Check if already seeded
+  const snap = await getDocs(_col.players());
+  if(!snap.empty){ console.log('Already seeded'); return; }
+  console.log('Seeding Firestore...');
+  const SEED_P=[
+    ["Alrenq","spectator"],["Angel (LilMilotic)","spectator"],["AniNing","spectator"],
+    ["AutisticPickle","spectator"],["Cai","spectator"],["Chion","active"],
+    ["Cozmo","active"],["deeepeee3","eliminated"],["Dumamay","spectator"],
+    ["Feilong","spectator"],["FortunaKirana","spectator"],["Gaia","spectator"],
+    ["Gunbae","spectator"],["HaaanZ","eliminated"],["Hel","spectator"],
+    ["HotBBQGrill","eliminated"],["HuaKui","eliminated"],["HuangJii","active"],
+    ["iLYa","active"],["Jade-Rooster","spectator"],["Jahbs","active"],
+    ["Jia Ying","eliminated"],["Jjooo","spectator"],["Jyun","spectator"],
+    ["Lviv","spectator"],["Mici","eliminated"],["Mojo","active"],
+    ["Nishiora","spectator"],["Nshki","spectator"],["Ogeypeko","spectator"],
+    ["OishiEdo","spectator"],["OPM","active"],["Petter","spectator"],
+    ["plop","spectator"],["Python","spectator"],["Reito","active"],
+    ["RoO","spectator"],["Sanhua","active"],["Seraliea","spectator"],
+    ["Serene","spectator"],["SirShadow","active"],["Skylleria","spectator"],
+    ["Snorkie","spectator"],["TK","spectator"],["Togez","spectator"],
+    ["tsukiyue","active"],["Tsurea","spectator"],["Villya","eliminated"],
+    ["Vorpalpledge","spectator"],["XE","spectator"],["xJunhaox","spectator"],
+    ["XNeaR","eliminated"],["xZel","spectator"],["YangKai","spectator"],
+    ["Yumad","spectator"],["Zia","eliminated"]
+  ];
+  const b1=writeBatch(_db);
+  SEED_P.forEach(([name,status],i)=>b1.set(doc(_db,'players','p'+i),{name,status}));
+  await b1.commit();
+
+  const SEED_M=[
+    {id:'M1',round:1,roundLabel:'Round 1 (24→12)',p1:'Reito',p2:'Alrenq',status:'done',winner:'Reito',bettingOpen:false,day:'WED',time:'After party'},
+    {id:'M2',round:1,roundLabel:'Round 1 (24→12)',p1:'deeepeee3',p2:'HuangJii',status:'done',winner:'HuangJii',bettingOpen:false,day:'WED',time:'After party'},
+    {id:'M3',round:1,roundLabel:'Round 1 (24→12)',p1:'Jia Ying',p2:'Cozmo',status:'done',winner:'Jia Ying',bettingOpen:false,day:'TUES',time:'During party'},
+    {id:'M4',round:1,roundLabel:'Round 1 (24→12)',p1:'Chion',p2:'XNeaR',status:'done',winner:'Chion',bettingOpen:false,day:'WED',time:'20:00'},
+    {id:'M5',round:1,roundLabel:'Round 1 (24→12)',p1:'tipsyneko',p2:'Mojo',status:'done',winner:'Mojo',bettingOpen:false,day:'TUES',time:'21:00'},
+    {id:'M6',round:1,roundLabel:'Round 1 (24→12)',p1:'Zia',p2:'Mici',status:'done',winner:'Zia',bettingOpen:false,day:'TUES',time:'After party'},
+    {id:'M7',round:1,roundLabel:'Round 1 (24→12)',p1:'iLYa',p2:'HotBBQGrill',status:'done',winner:'iLYa',bettingOpen:false,day:'TUES',time:'Before party'},
+    {id:'M8',round:1,roundLabel:'Round 1 (24→12)',p1:'SirShadow',p2:'Villya',status:'done',winner:'SirShadow',bettingOpen:false,day:'WED',time:'After party'},
+    {id:'M9',round:1,roundLabel:'Round 1 (24→12)',p1:'OPM',p2:'HaaanZ',status:'done',winner:'OPM',bettingOpen:false,day:'WED',time:'After party'},
+    {id:'M10',round:1,roundLabel:'Round 1 (24→12)',p1:'tsukiyue',p2:'HuaKui',status:'done',winner:'tsukiyue',bettingOpen:false,day:'TUES',time:'After party'},
+    {id:'M11',round:1,roundLabel:'Round 1 (24→12)',p1:'Vorpalpledge',p2:'Sanhua',status:'done',winner:'Sanhua',bettingOpen:false,day:'TUES',time:'After party'},
+    {id:'M12',round:1,roundLabel:'Round 1 (24→12)',p1:'Jahbs',p2:'xZel',status:'done',winner:'Jahbs',bettingOpen:false,day:'TUES',time:'During party'},
+    {id:'M13',round:2,roundLabel:'Round 2 (12→6)',p1:'Reito',p2:'HuangJii',status:'pending',winner:null,bettingOpen:true,day:'Today',time:''},
+    {id:'M14',round:2,roundLabel:'Round 2 (12→6)',p1:'Jia Ying',p2:'Chion',status:'done',winner:'Chion',bettingOpen:false,day:'',time:''},
+    {id:'M15',round:2,roundLabel:'Round 2 (12→6)',p1:'Mojo',p2:'Zia',status:'done',winner:'Mojo',bettingOpen:false,day:'',time:''},
+    {id:'M16',round:2,roundLabel:'Round 2 (12→6)',p1:'iLYa',p2:'SirShadow',status:'pending',winner:null,bettingOpen:true,day:'Today',time:''},
+    {id:'M17',round:2,roundLabel:'Round 2 (12→6)',p1:'OPM',p2:'tsukiyue',status:'pending',winner:null,bettingOpen:true,day:'Today',time:''},
+    {id:'M18',round:2,roundLabel:'Round 2 (12→6)',p1:'Sanhua',p2:'Jahbs',status:'pending',winner:null,bettingOpen:true,day:'Today',time:''},
+    {id:'M19',round:3,roundLabel:'Round 3 (6→3)',p1:'TBD',p2:'TBD',status:'pending',winner:null,bettingOpen:false,day:'',time:''},
+    {id:'M20',round:3,roundLabel:'Round 3 (6→3)',p1:'TBD',p2:'TBD',status:'pending',winner:null,bettingOpen:false,day:'',time:''},
+  ];
+  const b2=writeBatch(_db);
+  SEED_M.forEach(m=>b2.set(doc(_db,'matches',m.id),m));
+  await b2.commit();
+
+  const SEED_B=[
+    {id:'b_m1_2',matchId:'M1',playerName:'Chion',pick:'Alrenq',amount:100,result:'lost'},
+    {id:'b_m1_4',matchId:'M1',playerName:'Cozmo',pick:'Reito',amount:20,result:'won'},
+    {id:'b_m1_5',matchId:'M1',playerName:'Feilong',pick:'Reito',amount:500,result:'won'},
+    {id:'b_m1_6',matchId:'M1',playerName:'Gaia',pick:'Alrenq',amount:50,result:'lost'},
+    {id:'b_m1_7',matchId:'M1',playerName:'Gunbae',pick:'Alrenq',amount:200,result:'lost'},
+    {id:'b_m1_8',matchId:'M1',playerName:'HuangJii',pick:'Reito',amount:200,result:'won'},
+    {id:'b_m1_9',matchId:'M1',playerName:'iLYa',pick:'Alrenq',amount:500,result:'lost'},
+    {id:'b_m1_10',matchId:'M1',playerName:'Mojo',pick:'Reito',amount:500,result:'won'},
+    {id:'b_m1_11',matchId:'M1',playerName:'Ogeypeko',pick:'Alrenq',amount:200,result:'lost'},
+    {id:'b_m1_12',matchId:'M1',playerName:'Ogeypeko',pick:'Reito',amount:100,result:'won'},
+    {id:'b_m1_14',matchId:'M1',playerName:'RoO',pick:'Alrenq',amount:1000,result:'lost'},
+    {id:'b_m2_1',matchId:'M2',playerName:'Chion',pick:'HuangJii',amount:300,result:'won'},
+    {id:'b_m2_2',matchId:'M2',playerName:'Feilong',pick:'deeepeee3',amount:300,result:'lost'},
+    {id:'b_m2_3',matchId:'M2',playerName:'FortunaKirana',pick:'HuangJii',amount:100,result:'won'},
+    {id:'b_m2_4',matchId:'M2',playerName:'Gaia',pick:'HuangJii',amount:100,result:'won'},
+    {id:'b_m2_5',matchId:'M2',playerName:'Gunbae',pick:'HuangJii',amount:250,result:'won'},
+    {id:'b_m2_6',matchId:'M2',playerName:'HuaKui',pick:'HuangJii',amount:500,result:'won'},
+    {id:'b_m2_7',matchId:'M2',playerName:'HuangJii',pick:'HuangJii',amount:800,result:'won'},
+    {id:'b_m2_8',matchId:'M2',playerName:'iLYa',pick:'deeepeee3',amount:100,result:'lost'},
+    {id:'b_m2_9',matchId:'M2',playerName:'iLYa',pick:'HuangJii',amount:1680,result:'won'},
+    {id:'b_m2_10',matchId:'M2',playerName:'Jia Ying',pick:'HuangJii',amount:200,result:'won'},
+    {id:'b_m2_11',matchId:'M2',playerName:'Jyun',pick:'HuangJii',amount:200,result:'won'},
+    {id:'b_m2_12',matchId:'M2',playerName:'Mojo',pick:'HuangJii',amount:2650,result:'won'},
+    {id:'b_m2_13',matchId:'M2',playerName:'Ogeypeko',pick:'HuangJii',amount:800,result:'won'},
+    {id:'b_m2_14',matchId:'M2',playerName:'RoO',pick:'HuangJii',amount:1000,result:'won'},
+    {id:'b_m2_15',matchId:'M2',playerName:'Seraliea',pick:'HuangJii',amount:200,result:'won'},
+    {id:'b_m2_16',matchId:'M2',playerName:'Serene',pick:'HuangJii',amount:1350,result:'won'},
+    {id:'b_m2_17',matchId:'M2',playerName:'Skylleria',pick:'HuangJii',amount:1800,result:'won'},
+    {id:'b_m3_1',matchId:'M3',playerName:'Gunbae',pick:'Jia Ying',amount:200,result:'won'},
+    {id:'b_m3_2',matchId:'M3',playerName:'HotBBQGrill',pick:'Cozmo',amount:100,result:'lost'},
+    {id:'b_m3_3',matchId:'M3',playerName:'Gaia',pick:'Jia Ying',amount:50,result:'won'},
+    {id:'b_m4_1',matchId:'M4',playerName:'Chion',pick:'Chion',amount:1400,result:'won'},
+    {id:'b_m4_2',matchId:'M4',playerName:'Feilong',pick:'xNear',amount:300,result:'lost'},
+    {id:'b_m4_3',matchId:'M4',playerName:'FortunaKirana',pick:'Chion',amount:100,result:'won'},
+    {id:'b_m4_4',matchId:'M4',playerName:'Gaia',pick:'xNear',amount:50,result:'lost'},
+    {id:'b_m4_5',matchId:'M4',playerName:'Gunbae',pick:'Chion',amount:100,result:'won'},
+    {id:'b_m4_6',matchId:'M4',playerName:'HuaKui',pick:'Chion',amount:1000,result:'won'},
+    {id:'b_m4_7',matchId:'M4',playerName:'HuangJii',pick:'Chion',amount:200,result:'won'},
+    {id:'b_m4_8',matchId:'M4',playerName:'iLYa',pick:'Chion',amount:1000,result:'won'},
+    {id:'b_m4_9',matchId:'M4',playerName:'Jyun',pick:'Chion',amount:200,result:'won'},
+    {id:'b_m4_10',matchId:'M4',playerName:'Mojo',pick:'xNear',amount:500,result:'lost'},
+    {id:'b_m4_11',matchId:'M4',playerName:'Ogeypeko',pick:'Chion',amount:400,result:'won'},
+    {id:'b_m4_12',matchId:'M4',playerName:'RoO',pick:'Chion',amount:2880,result:'won'},
+    {id:'b_m4_13',matchId:'M4',playerName:'Skylleria',pick:'xNear',amount:3200,result:'lost'},
+    {id:'b_m4_14',matchId:'M4',playerName:'Zia',pick:'Chion',amount:200,result:'won'},
+    {id:'b_m5_1',matchId:'M5',playerName:'Cozmo',pick:'Tipsyneko',amount:100,result:'lost'},
+    {id:'b_m5_2',matchId:'M5',playerName:'Cozmo',pick:'Mojo',amount:400,result:'won'},
+    {id:'b_m5_3',matchId:'M5',playerName:'Dumamay',pick:'Tipsyneko',amount:800,result:'lost'},
+    {id:'b_m5_4',matchId:'M5',playerName:'Feilong',pick:'Mojo',amount:800,result:'won'},
+    {id:'b_m5_5',matchId:'M5',playerName:'Gunbae',pick:'Mojo',amount:600,result:'won'},
+    {id:'b_m5_6',matchId:'M5',playerName:'Hel',pick:'Tipsyneko',amount:200,result:'lost'},
+    {id:'b_m5_7',matchId:'M5',playerName:'iLYa',pick:'Mojo',amount:700,result:'won'},
+    {id:'b_m5_8',matchId:'M5',playerName:'Mojo',pick:'Mojo',amount:800,result:'won'},
+    {id:'b_m5_9',matchId:'M5',playerName:'Nishiora',pick:'Mojo',amount:800,result:'won'},
+    {id:'b_m5_10',matchId:'M5',playerName:'Ogeypeko',pick:'Mojo',amount:200,result:'won'},
+    {id:'b_m5_11',matchId:'M5',playerName:'OPM',pick:'tipsyneko',amount:800,result:'lost'},
+    {id:'b_m5_12',matchId:'M5',playerName:'Petter',pick:'Mojo',amount:800,result:'won'},
+    {id:'b_m5_13',matchId:'M5',playerName:'plop',pick:'Tipsyneko',amount:100,result:'lost'},
+    {id:'b_m5_14',matchId:'M5',playerName:'Python',pick:'Tipsyneko',amount:50,result:'lost'},
+    {id:'b_m5_15',matchId:'M5',playerName:'RoO',pick:'Mojo',amount:800,result:'won'},
+    {id:'b_m5_16',matchId:'M5',playerName:'Seraliea',pick:'Tipsyneko',amount:200,result:'lost'},
+    {id:'b_m5_17',matchId:'M5',playerName:'Seraliea',pick:'Mojo',amount:100,result:'won'},
+    {id:'b_m5_18',matchId:'M5',playerName:'Serene',pick:'Mojo',amount:200,result:'won'},
+    {id:'b_m5_19',matchId:'M5',playerName:'Skylleria',pick:'Mojo',amount:400,result:'won'},
+    {id:'b_m5_20',matchId:'M5',playerName:'Tipsyneko',pick:'Tipsyneko',amount:200,result:'lost'},
+    {id:'b_m5_21',matchId:'M5',playerName:'Tsurea',pick:'Tipsyneko',amount:700,result:'lost'},
+    {id:'b_m5_22',matchId:'M5',playerName:'Vorpalpledge',pick:'Mojo',amount:200,result:'won'},
+    {id:'b_m5_23',matchId:'M5',playerName:'xJunhaox',pick:'tipsyneko',amount:200,result:'lost'},
+    {id:'b_m5_24',matchId:'M5',playerName:'xZel',pick:'tipsyneko',amount:800,result:'lost'},
+    {id:'b_m5_25',matchId:'M5',playerName:'Gaia',pick:'Mojo',amount:50,result:'won'},
+    {id:'b_m6_1',matchId:'M6',playerName:'Gaia',pick:'Zia',amount:50,result:'won'},
+    {id:'b_m6_2',matchId:'M6',playerName:'Gunbae',pick:'Zia',amount:400,result:'won'},
+    {id:'b_m6_3',matchId:'M6',playerName:'HotBBQGrill',pick:'Zia',amount:100,result:'won'},
+    {id:'b_m6_4',matchId:'M6',playerName:'Jyun',pick:'Zia',amount:100,result:'won'},
+    {id:'b_m6_5',matchId:'M6',playerName:'Ogeypeko',pick:'Zia',amount:500,result:'won'},
+    {id:'b_m6_6',matchId:'M6',playerName:'Python',pick:'mici',amount:50,result:'lost'},
+    {id:'b_m7_1',matchId:'M7',playerName:'cozmo',pick:'HotBBQGrill',amount:100,result:'lost'},
+    {id:'b_m7_2',matchId:'M7',playerName:'Gaia',pick:'HotBBQGrill',amount:50,result:'lost'},
+    {id:'b_m7_3',matchId:'M7',playerName:'HotBBQGrill',pick:'iLYa',amount:100,result:'won'},
+    {id:'b_m8_1',matchId:'M8',playerName:'Chion',pick:'SirShadow',amount:900,result:'won'},
+    {id:'b_m8_2',matchId:'M8',playerName:'Chion',pick:'Villya',amount:900,result:'lost'},
+    {id:'b_m8_3',matchId:'M8',playerName:'Feilong',pick:'Villya',amount:1000,result:'lost'},
+    {id:'b_m8_4',matchId:'M8',playerName:'FortunaKirana',pick:'Villya',amount:200,result:'lost'},
+    {id:'b_m8_5',matchId:'M8',playerName:'FortunaKirana',pick:'SirShadow',amount:100,result:'won'},
+    {id:'b_m8_6',matchId:'M8',playerName:'HuaKui',pick:'Villya',amount:2500,result:'lost'},
+    {id:'b_m8_7',matchId:'M8',playerName:'HuangJii',pick:'Villya',amount:2500,result:'lost'},
+    {id:'b_m8_8',matchId:'M8',playerName:'iLYa',pick:'Villya',amount:2000,result:'lost'},
+    {id:'b_m8_9',matchId:'M8',playerName:'Jjooo',pick:'SirShadow',amount:350,result:'won'},
+    {id:'b_m8_10',matchId:'M8',playerName:'Jyun',pick:'SirShadow',amount:500,result:'won'},
+    {id:'b_m8_11',matchId:'M8',playerName:'Jyun',pick:'Villya',amount:500,result:'lost'},
+    {id:'b_m8_12',matchId:'M8',playerName:'Mici',pick:'SirShadow',amount:500,result:'won'},
+    {id:'b_m8_13',matchId:'M8',playerName:'Mojo',pick:'SirShadow',amount:3000,result:'won'},
+    {id:'b_m8_14',matchId:'M8',playerName:'Ogeypeko',pick:'SirShadow',amount:500,result:'won'},
+    {id:'b_m8_15',matchId:'M8',playerName:'Ogeypeko',pick:'Villya',amount:2000,result:'lost'},
+    {id:'b_m8_16',matchId:'M8',playerName:'Petter',pick:'Villya',amount:3680,result:'lost'},
+    {id:'b_m8_17',matchId:'M8',playerName:'RoO',pick:'SirShadow',amount:3932,result:'won'},
+    {id:'b_m8_18',matchId:'M8',playerName:'Seraliea',pick:'Villya',amount:1500,result:'lost'},
+    {id:'b_m9_1',matchId:'M9',playerName:'Chion',pick:'OPM',amount:700,result:'won'},
+    {id:'b_m9_2',matchId:'M9',playerName:'Cozmo',pick:'Haanz',amount:40,result:'lost'},
+    {id:'b_m9_3',matchId:'M9',playerName:'Cozmo',pick:'OPM',amount:100,result:'won'},
+    {id:'b_m9_4',matchId:'M9',playerName:'Cozmo',pick:'OPM',amount:800,result:'won'},
+    {id:'b_m9_5',matchId:'M9',playerName:'Feilong',pick:'OPM',amount:500,result:'won'},
+    {id:'b_m9_6',matchId:'M9',playerName:'FortunaKirana',pick:'OPM',amount:100,result:'won'},
+    {id:'b_m9_7',matchId:'M9',playerName:'Gaia',pick:'OPM',amount:100,result:'won'},
+    {id:'b_m9_8',matchId:'M9',playerName:'Gunbae',pick:'OPM',amount:200,result:'won'},
+    {id:'b_m9_9',matchId:'M9',playerName:'HuaKui',pick:'OPM',amount:1000,result:'won'},
+    {id:'b_m9_10',matchId:'M9',playerName:'HuangJii',pick:'OPM',amount:200,result:'won'},
+    {id:'b_m9_11',matchId:'M9',playerName:'HuangJii',pick:'OPM',amount:1000,result:'won'},
+    {id:'b_m9_12',matchId:'M9',playerName:'iLYa',pick:'Haanz',amount:1000,result:'lost'},
+    {id:'b_m9_13',matchId:'M9',playerName:'Jia Ying',pick:'OPM',amount:500,result:'won'},
+    {id:'b_m9_14',matchId:'M9',playerName:'Jia Ying',pick:'OPM',amount:700,result:'won'},
+    {id:'b_m9_15',matchId:'M9',playerName:'Jyun',pick:'OPM',amount:200,result:'won'},
+    {id:'b_m9_16',matchId:'M9',playerName:'Mojo',pick:'OPM',amount:3000,result:'won'},
+    {id:'b_m9_17',matchId:'M9',playerName:'Ogeypeko',pick:'OPM',amount:800,result:'won'},
+    {id:'b_m9_18',matchId:'M9',playerName:'Petter',pick:'OPM',amount:1880,result:'won'},
+    {id:'b_m9_19',matchId:'M9',playerName:'plop',pick:'OPM',amount:100,result:'won'},
+    {id:'b_m9_20',matchId:'M9',playerName:'RoO',pick:'OPM',amount:2,result:'won'},
+    {id:'b_m9_21',matchId:'M9',playerName:'RoO',pick:'Haanz',amount:1000,result:'lost'},
+    {id:'b_m9_22',matchId:'M9',playerName:'Seraliea',pick:'OPM',amount:400,result:'won'},
+    {id:'b_m9_23',matchId:'M9',playerName:'Seraliea',pick:'OPM',amount:1000,result:'won'},
+    {id:'b_m9_24',matchId:'M9',playerName:'Snorkie',pick:'OPM',amount:1830,result:'won'},
+    {id:'b_m9_25',matchId:'M9',playerName:'Tsurea',pick:'OPM',amount:150,result:'won'},
+    {id:'b_m10_1',matchId:'M10',playerName:'Chion',pick:'tsukiyue',amount:800,result:'won'},
+    {id:'b_m10_2',matchId:'M10',playerName:'Gaia',pick:'HuaKui',amount:50,result:'lost'},
+    {id:'b_m11_1',matchId:'M11',playerName:'Gaia',pick:'Sanhua',amount:50,result:'won'},
+    {id:'b_m11_2',matchId:'M11',playerName:'Jyun',pick:'Sanhua',amount:100,result:'won'},
+    {id:'b_m11_3',matchId:'M11',playerName:'Ogeypeko',pick:'Vorpalpledge',amount:100,result:'lost'},
+    {id:'b_m11_4',matchId:'M11',playerName:'Python',pick:'Sanhua',amount:50,result:'won'},
+    {id:'b_m11_5',matchId:'M11',playerName:'Sanhua',pick:'Vorpalpledge',amount:200,result:'lost'},
+    {id:'b_m12_1',matchId:'M12',playerName:'Gaia',pick:'Jahbs',amount:100,result:'won'},
+    {id:'b_m12_2',matchId:'M12',playerName:'Gunbae',pick:'xZel',amount:600,result:'lost'},
+    {id:'b_m12_3',matchId:'M12',playerName:'HotBBQGrill',pick:'Jahbs',amount:100,result:'won'},
+    {id:'b_m12_4',matchId:'M12',playerName:'Jahbs',pick:'Jahbs',amount:800,result:'won'},
+    {id:'b_m12_5',matchId:'M12',playerName:'plop',pick:'xZel',amount:100,result:'lost'},
+    {id:'b_m12_6',matchId:'M12',playerName:'Seraliea',pick:'xZel',amount:100,result:'lost'},
+    {id:'b_m12_7',matchId:'M12',playerName:'Snorkie',pick:'Jahbs',amount:800,result:'won'},
+    {id:'b_m12_8',matchId:'M12',playerName:'Tsurea',pick:'xZel',amount:100,result:'lost'},
+    {id:'b_m13_1',matchId:'M13',playerName:'Chion',pick:'HuangJii',amount:1000,result:null},
+    {id:'b_m13_2',matchId:'M13',playerName:'Cozmo',pick:'Reito',amount:400,result:null},
+    {id:'b_m13_3',matchId:'M13',playerName:'HuangJii',pick:'HuangJii',amount:1000,result:null},
+    {id:'b_m13_4',matchId:'M13',playerName:'Mojo',pick:'HuangJii',amount:2500,result:null},
+    {id:'b_m14_1',matchId:'M14',playerName:'Chion',pick:'Chion',amount:680,result:'won'},
+    {id:'b_m14_2',matchId:'M14',playerName:'cozmo',pick:'Jia Ying',amount:200,result:'lost'},
+    {id:'b_m14_3',matchId:'M14',playerName:'Feilong',pick:'Chion',amount:500,result:'won'},
+    {id:'b_m14_4',matchId:'M14',playerName:'FortunaKirana',pick:'Chion',amount:100,result:'won'},
+    {id:'b_m14_5',matchId:'M14',playerName:'FortunaKirana',pick:'Chion',amount:100,result:'won'},
+    {id:'b_m14_6',matchId:'M14',playerName:'Jyun',pick:'Chion',amount:500,result:'won'},
+    {id:'b_m14_7',matchId:'M14',playerName:'Mojo',pick:'Chion',amount:1000,result:'won'},
+    {id:'b_m14_8',matchId:'M14',playerName:'RoO',pick:'Chion',amount:5000,result:'won'},
+    {id:'b_m14_9',matchId:'M14',playerName:'iLYa',pick:'Chion',amount:1000,result:'won'},
+    {id:'b_m14_10',matchId:'M14',playerName:'iLYa',pick:'Chion',amount:1000,result:'won'},
+    {id:'b_m14_11',matchId:'M14',playerName:'Gaia',pick:'Jia Ying',amount:200,result:'lost'},
+    {id:'b_m14_12',matchId:'M14',playerName:'Seraliea',pick:'Chion',amount:100,result:'won'},
+    {id:'b_m15_1',matchId:'M15',playerName:'AniNing',pick:'Mojo',amount:1300,result:'won'},
+    {id:'b_m15_2',matchId:'M15',playerName:'Chion',pick:'Mojo',amount:1000,result:'won'},
+    {id:'b_m15_3',matchId:'M15',playerName:'Cozmo',pick:'Mojo',amount:1000,result:'won'},
+    {id:'b_m15_4',matchId:'M15',playerName:'Dumamay',pick:'Mojo',amount:1000,result:'won'},
+    {id:'b_m15_5',matchId:'M15',playerName:'Feilong',pick:'Mojo',amount:1000,result:'won'},
+    {id:'b_m15_6',matchId:'M15',playerName:'Gaia',pick:'Zia',amount:200,result:'lost'},
+    {id:'b_m15_7',matchId:'M15',playerName:'Gunbae',pick:'Mojo',amount:2950,result:'won'},
+    {id:'b_m15_8',matchId:'M15',playerName:'HuaKui',pick:'Mojo',amount:1000,result:'won'},
+    {id:'b_m15_9',matchId:'M15',playerName:'HuangJii',pick:'Mojo',amount:1000,result:'won'},
+    {id:'b_m15_10',matchId:'M15',playerName:'iLYa',pick:'Mojo',amount:2000,result:'won'},
+    {id:'b_m15_11',matchId:'M15',playerName:'Jia Ying',pick:'Mojo',amount:1900,result:'won'},
+    {id:'b_m15_12',matchId:'M15',playerName:'Jjooo',pick:'Zia',amount:2300,result:'lost'},
+    {id:'b_m15_13',matchId:'M15',playerName:'Jyun',pick:'Mojo',amount:1000,result:'won'},
+    {id:'b_m15_14',matchId:'M15',playerName:'Mojo',pick:'Mojo',amount:6400,result:'won'},
+    {id:'b_m15_15',matchId:'M15',playerName:'Nishiora',pick:'Mojo',amount:2900,result:'won'},
+    {id:'b_m15_16',matchId:'M15',playerName:'Ogeypeko',pick:'Mojo',amount:1500,result:'won'},
+    {id:'b_m15_17',matchId:'M15',playerName:'plop',pick:'Mojo',amount:830,result:'won'},
+    {id:'b_m15_18',matchId:'M15',playerName:'RoO',pick:'Mojo',amount:8000,result:'won'},
+    {id:'b_m15_19',matchId:'M15',playerName:'Seraliea',pick:'Mojo',amount:500,result:'won'},
+    {id:'b_m15_20',matchId:'M15',playerName:'Skylleria',pick:'Mojo',amount:1100,result:'won'},
+    {id:'b_m15_21',matchId:'M15',playerName:'Snorkie',pick:'Zia',amount:100,result:'lost'},
+    {id:'b_m15_22',matchId:'M15',playerName:'Tsurea',pick:'Mojo',amount:100,result:'won'},
+    {id:'b_m15_23',matchId:'M15',playerName:'xJunhaox',pick:'Mojo',amount:1300,result:'won'},
+    {id:'b_m15_24',matchId:'M15',playerName:'Zia',pick:'Mojo',amount:649,result:'won'},
+    {id:'b_m15_25',matchId:'M15',playerName:'Zia',pick:'Zia',amount:1,result:'lost'},
+    {id:'b_m15_26',matchId:'M15',playerName:'Vorpalpledge',pick:'Mojo',amount:700,result:'won'},
+    {id:'b_m16_1',matchId:'M16',playerName:'Chion',pick:'SirShadow',amount:1000,result:null},
+    {id:'b_m16_2',matchId:'M16',playerName:'Cozmo',pick:'SirShadow',amount:600,result:null},
+    {id:'b_m16_3',matchId:'M16',playerName:'Mojo',pick:'iLYa',amount:1660,result:null},
+    {id:'b_m16_4',matchId:'M16',playerName:'tsukiyue',pick:'iLYa',amount:600,result:null},
+    {id:'b_m16_5',matchId:'M16',playerName:'iLYa',pick:'iLYa',amount:5100,result:null},
+    {id:'b_m17_1',matchId:'M17',playerName:'Chion',pick:'tsukiyue',amount:1000,result:null},
+    {id:'b_m17_2',matchId:'M17',playerName:'Cozmo',pick:'OPM',amount:500,result:null},
+    {id:'b_m17_3',matchId:'M17',playerName:'Mojo',pick:'OPM',amount:1000,result:null},
+    {id:'b_m17_4',matchId:'M17',playerName:'plop',pick:'OPM',amount:2,result:null},
+    {id:'b_m17_5',matchId:'M17',playerName:'tsukiyue',pick:'OPM',amount:450,result:null},
+    {id:'b_m17_6',matchId:'M17',playerName:'xZel',pick:'OPM',amount:1100,result:null},
+    {id:'b_m18_1',matchId:'M18',playerName:'Cozmo',pick:'Jahbs',amount:400,result:null},
+    {id:'b_m20_1',matchId:'M20',playerName:'Vorpalpledge',pick:'Mojo',amount:1200,result:null},
+  ];
+  for(let i=0;i<SEED_B.length;i+=400){
+    const bb=writeBatch(_db);
+    SEED_B.slice(i,i+400).forEach(b=>bb.set(doc(_db,'bets',b.id),b));
+    await bb.commit();
+  }
+
+  const SEED_L=[
+    ["AniNing",1200],["Chion",1600],["Cozmo",1600],["Dumamay",1250],
+    ["Feilong",600],["Gaia",600],["Gunbae",1600],["HotBBQGrill",200],
+    ["HuaKui",800],["HuangJii",700],["iLYa",670],["Jahbs",600],
+    ["Jjooo",1600],["Mici",300],["Mojo",600],["Nishiora",1600],
+    ["Ogeypeko",600],["OPM",600],["Petter",600],["plop",600],
+    ["RoO",600],["Seraliea",600],["Serene",600],["Skylleria",1600],
+    ["Snorkie",600],["Tsurea",600],["xJunhaox",1000],["xZel",1600],
+  ];
+  const lb=writeBatch(_db);
+  SEED_L.forEach(([name,amount],i)=>{let rem=amount,ci=0;while(rem>0){lb.set(doc(_db,'loans','l_r1_'+i+'_'+ci),{playerName:name,amount:Math.min(rem,600),loanRound:1,repaid:false});rem-=600;ci++;}});
+  await lb.commit();
+
+  const SEED_AB={"Alrenq":400,"Angel (LilMilotic)":200,"AniNing":400,"AutisticPickle":100,"Cai":100,"Chion":700,"Cozmo":550,"deeepeee3":250,"Dumamay":450,"Feilong":500,"FortunaKirana":500,"Gaia":200,"Gunbae":450,"HaaanZ":100,"HotBBQGrill":250,"HuaKui":450,"HuangJii":350,"iLYa":450,"Jade-Rooster":100,"Jahbs":350,"Jia Ying":400,"Jjooo":250,"Jyun":350,"Lviv":400,"Mojo":450,"Nishiora":400,"Nshki":100,"Ogeypeko":600,"OishiEdo":250,"OPM":500,"Petter":200,"plop":500,"Python":100,"Reito":200,"RoO":700,"Sanhua":100,"Seraliea":500,"Serene":350,"SirShadow":300,"Skylleria":500,"Snorkie":600,"TK":300,"Togez":400,"tsukiyue":350,"Tsurea":450,"Villya":200,"Vorpalpledge":100,"XE":100,"xJunhaox":450,"XNeaR":100,"xZel":100,"YangKai":600,"Yumad":100,"Zia":350};
+  const ab=writeBatch(_db);
+  Object.entries(SEED_AB).forEach(([name,delta])=>{if(delta>0)ab.set(doc(_db,'adjustments','adj_ab_'+name.replace(/[^a-z0-9]/gi,'_')),{playerName:name,delta,reason:'Audience bonus (Round 1)',date:'2026-05-01'});});
+  await ab.commit();
+
+  await setDoc(_cfgDoc(),{
+    loanRounds:[
+      {round:1,label:'Round 1 (24→12)',maxLoan:600,open:false},
+      {round:2,label:'Round 2 (12→6)',maxLoan:1000,open:true},
+      {round:3,label:'Round 3 (6→3)',maxLoan:0,open:false},
+      {round:4,label:'Final (Round Robin)',maxLoan:0,open:false}
+    ],
+    currentRound:2,pins:{},collapsedRounds:{'Round 1 (24→12)':true}
+  });
+  console.log('Seed complete!');
+}
+
+// ── COIN CALC ──────────────────────────────
+function norm(n){return (n||'').toLowerCase().trim();}
+function findPlayer(name){return S.players.find(p=>norm(p.name)===norm(name));}
+
+function getCoins(name){
+  let c=START_COINS;
+  S.loans.filter(l=>norm(l.playerName)===norm(name)).forEach(l=>{c+=l.amount;});
+  S.loans.filter(l=>norm(l.playerName)===norm(name)&&l.repaid).forEach(l=>{c-=Math.round(l.amount*1.2);});
+  S.bets.filter(b=>norm(b.playerName)===norm(name)).forEach(b=>{
+    if(b.result==='walkover'||b.result==='voided') return; // no net effect on balance
+    c-=b.amount;
+    if(b.result==='won') c+=b.amount*BET_MULT;
+  });
+  (S.adjustments||[]).filter(a=>norm(a.playerName)===norm(name)).forEach(a=>{c+=a.delta;});
+  return Math.round(c);
+}
+function getDebt(name){
+  return S.loans.filter(l=>norm(l.playerName)===norm(name)&&!l.repaid)
+    .reduce((s,l)=>s+Math.round(l.amount*1.2),0);
+}
+function getNet(name){return getCoins(name)-getDebt(name);}
+
+// ── DISPLAY-MODEL HELPERS ───────────────────
+// getPendingStakes: coins currently locked in unresolved bets.
+// These are deducted from getCoins() (so you can't re-bet them),
+// but they are NOT lost yet — the match hasn't resolved.
+function getPendingStakes(name){
+  return S.bets
+    .filter(b=>norm(b.playerName)===norm(name) && b.result===null)
+    .reduce((s,b)=>s+b.amount, 0);
+  // Note: voided bets have result='voided' (not null) so they are excluded here correctly.
+}
+
+// getNetWorth: economic net worth matching the spreadsheet source of truth.
+// = getCoins (available) + pendingStakes (locked but still yours) − debt (owed to bank)
+// = Start + resolvedBetNet + audienceBonus − loanInterestOnly
+// Equivalent to spreadsheet ActualBalance.  Used for leaderboard ranking.
+function getNetWorth(name){
+  return getCoins(name) + getPendingStakes(name) - getDebt(name);
+}
+
+function getLoanTaken(name, round){
+  // Per-round cap: only count loans taken during the specified round.
+  // A player who borrowed 600 in Round 1 starts Round 2 with a fresh 1000 cap.
+  return S.loans
+    .filter(l=>norm(l.playerName)===norm(name) && l.loanRound===round)
+    .reduce((s,l)=>s+l.amount, 0);
+}
+function getCurLR(){return S.loanRounds.find(r=>r.round===S.currentRound)||S.loanRounds[1];}
+
+// ── AUTH ───────────────────────────────────
+function showScreen(id){
+  const ls=document.getElementById('loading-screen');if(ls)ls.style.display='none';
+  ['login-screen','register-screen','pin-screen','admin-login-screen','player-screen','admin-screen']
+    .forEach(s=>{document.getElementById(s).classList.toggle('hidden',s!==id);});
+}
+function showLogin(){populateDropdown();showScreen('login-screen');}
+function showAdminLogin(){showScreen('admin-login-screen');}
+function showRegister(){buildKeypad('reg-keypad',regKey);showScreen('register-screen');}
+function logout(){S.currentUser=null;isAdmin=false;_unsubs.forEach(u=>u());_unsubs=[];showLogin();}
+
+function populateDropdown(){
+  const sel=document.getElementById('login-name-select');
+  sel.innerHTML='<option value="">— Select your name —</option>'+
+    [...S.players].sort((a,b)=>a.name.localeCompare(b.name))
+      .map(p=>`<option value="${p.name}">${p.name}</option>`).join('');
+}
+
+let pendingName='';
+function startLogin(){
+  const name=document.getElementById('login-name-select').value;
+  if(!name){showErr('login-error','Please select your name');return;}
+  pendingName=name;
+  if(S.pins[norm(name)]){
+    document.getElementById('pin-title').textContent='Welcome, '+name;
+    pinBuf='';updateDots('pd',pinBuf);buildKeypad('pin-keypad',pinKey);
+    showScreen('pin-screen');
+  } else {
+    document.getElementById('reg-name').value=name;
+    document.getElementById('reg-name').readOnly=true;
+    regBuf='';regConf='';regStage='set';
+    document.getElementById('reg-pin-label').textContent='Choose your 4-digit PIN';
+    updateDots('rd','');buildKeypad('reg-keypad',regKey);
+    showScreen('register-screen');
+  }
+}
+function loginAdmin(){
+  if(document.getElementById('admin-pw').value!==ADMIN_PW){showErr('admin-pw-error','Incorrect password');return;}
+  S.currentUser='Admin';isAdmin=true;showScreen('admin-screen');renderAMatches();renderAMatches();
+}
+
+let pinBuf='',regBuf='',regConf='',regStage='set';
+function buildKeypad(cid,handler){
+  const el=document.getElementById(cid);el.innerHTML='';
+  ['1','2','3','4','5','6','7','8','9','','0','⌫'].forEach(k=>{
+    const d=document.createElement('div');
+    if(k===''){el.appendChild(d);return;}
+    d.className='pin-key';d.textContent=k;
+    d.onclick=()=>handler(k);el.appendChild(d);
+  });
+}
+function updateDots(prefix,buf){
+  for(let i=0;i<4;i++) document.getElementById(prefix+i).classList.toggle('filled',i<buf.length);
+}
+function pinKey(k){
+  if(k==='⌫') pinBuf=pinBuf.slice(0,-1);
+  else if(pinBuf.length<4) pinBuf+=k;
+  updateDots('pd',pinBuf);
+  if(pinBuf.length===4) setTimeout(()=>{
+    if(S.pins[norm(pendingName)]===pinBuf){
+      S.currentUser=pendingName;isAdmin=false;
+      showScreen('player-screen');
+      document.getElementById('player-name-hdr').textContent=pendingName;
+      refreshStats();renderPMatches();
+    } else {
+      showErr('pin-error','Wrong PIN, try again');
+      pinBuf='';updateDots('pd',pinBuf);
+    }
+  },150);
+}
+function regKey(k){
+  const cur=regStage==='set'?regBuf:regConf;
+  if(k==='⌫'){if(regStage==='set')regBuf=regBuf.slice(0,-1);else regConf=regConf.slice(0,-1);}
+  else if(cur.length<4){if(regStage==='set')regBuf+=k;else regConf+=k;}
+  updateDots('rd',regStage==='set'?regBuf:regConf);
+  if(regStage==='set'&&regBuf.length===4) setTimeout(()=>{
+    regStage='confirm';regConf='';
+    document.getElementById('reg-pin-label').textContent='Confirm your PIN';
+    updateDots('rd','');
+  },150);
+  else if(regStage==='confirm'&&regConf.length===4) setTimeout(async ()=>{
+    if(regBuf===regConf){
+      const name=document.getElementById('reg-name').value.trim();
+      if(!findPlayer(name)){await _fsSet('players','p'+Date.now(),{name,status:'spectator'});}
+      const _np={...S.pins,[norm(name)]:regBuf};await _fsCfg({pins:_np});
+      S.currentUser=name;isAdmin=false;
+      document.getElementById('player-name-hdr').textContent=name;
+      showScreen('player-screen');
+      _curPTab='p-matches';
+      refreshStats();renderPMatches();
+    } else {
+      showErr('reg-error','PINs do not match, try again');
+      regStage='set';regBuf='';regConf='';
+      document.getElementById('reg-pin-label').textContent='Choose your 4-digit PIN';
+      updateDots('rd','');
+    }
+  },150);
+}
+function showErr(id,msg){
+  const el=document.getElementById(id);if(!el)return;
+  el.textContent=msg;el.classList.remove('hidden');
+  setTimeout(()=>el.classList.add('hidden'),3500);
+}
+
+// ── TABS ───────────────────────────────────
+function playerTab(el,id){
+  _curPTab=id;
+  document.querySelectorAll('#player-screen .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['p-matches','p-leaderboard','p-mybets','p-bank'].forEach(x=>document.getElementById(x).classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+  if(id==='p-leaderboard')renderLeaderboard();
+  if(id==='p-mybets')renderMyBets();
+  if(id==='p-bank')renderPBank();
+}
+function adminTab(el,id){
+  _curATab=id;
+  document.querySelectorAll('#admin-screen .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['a-matches','a-players','a-bank','a-audience','a-corrections','a-settings'].forEach(x=>document.getElementById(x).classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+  if(id==='a-matches')renderAMatches();
+  if(id==='a-players')renderAPlayers();
+  if(id==='a-bank')renderABank();
+  if(id==='a-audience')renderAudience();
+  if(id==='a-corrections')renderACorrections();
+  if(id==='a-settings')renderASettings();
+}
+
+// ── HELPERS ────────────────────────────────
+function initials(n){return n.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();}
+const AV=[['#1E2A3A','#6AA8D8'],['#2A1E3A','#A87AD8'],['#1E3A2A','#6AD8A0'],['#3A2A1E','#D8A06A'],['#3A1E2A','#D86A8A'],['#1E3A3A','#6AD8D4'],['#2E2A1E','#C8B86A']];
+function avStyle(n){let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))%AV.length;const[bg,co]=AV[Math.abs(h)%AV.length];return `background:${bg};color:${co};border-color:${co}33`;}
+function fmt(n){return Math.round(n).toLocaleString();}
+function closeModal(id){document.getElementById(id).classList.add('hidden');}
+
+// ── COLLAPSIBLE ROUNDS ──────────────────────
+async function toggleRound(label){
+  const cr={...S.collapsedRounds};cr[label]=!cr[label];
+  const body=document.getElementById('round-body-'+roundKey(label));
+  const btn=document.getElementById('round-btn-'+roundKey(label));
+  if(body){body.style.maxHeight=cr[label]?'0':body.scrollHeight+5000+'px';}
+  if(btn)btn.textContent=cr[label]?'Show':'Hide';
+  await _fsCfg({collapsedRounds:cr});
+}
+function roundKey(label){
+  // safe hash - no btoa, works with unicode arrows
+  let h=5381;for(let i=0;i<label.length;i++)h=(h*33^label.charCodeAt(i))>>>0;
+  return 'r'+h.toString(36);
+}
+function roundSection(label,content,defaultCollapsed){
+  const k=roundKey(label);
+  const isCollapsed=S.collapsedRounds&&S.collapsedRounds[label]!==undefined?S.collapsedRounds[label]:defaultCollapsed;
+  return `<div class="round-header" onclick="toggleRound('${label.replace(/'/g,"\\'")}')">
+    <span class="round-header-label">${label}</span>
+    <span class="round-toggle" id="round-btn-${k}">${isCollapsed?'Show':'Hide'}</span>
+  </div>
+  <div class="round-body ${isCollapsed?'collapsed':''}" id="round-body-${k}" style="max-height:${isCollapsed?'0':'9999px'}">
+    ${content}
+  </div>`;
+}
+
+// ── PLAYER: STATS ──────────────────────────
+function refreshStats(){
+  const n=S.currentUser;
+  const coins   = getCoins(n);          // spendable right now
+  const pending = getPendingStakes(n);  // locked in live bets, still yours
+  const debt    = getDebt(n);           // owed to Cat Bank (principal + 20%)
+  const worth   = getNetWorth(n);       // economic net worth = coins + pending − debt
+  const mb = S.bets.filter(b=>norm(b.playerName)===norm(n));
+  const won = mb.filter(b=>b.result==='won').length;
+  const total   = mb.filter(b=>b.result!==null&&b.result!=='walkover').length;
+  document.getElementById('player-stats').innerHTML=`
+    <div class="stat-card">
+      <div class="stat-label">Available Coins</div>
+      <div class="stat-val ${coins<0?'red':''}">${fmt(coins)}</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px">spendable now</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Pending Stakes</div>
+      <div class="stat-val ${pending>0?'':''}${pending>0?'':'green'}" style="color:${pending>0?'var(--gold)':'var(--text-dim)'}">${pending>0?fmt(pending):'—'}</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px">${pending>0?'locked in live bets':'no active bets'}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Debt Owed</div>
+      <div class="stat-val ${debt>0?'red':''}">${debt>0?'−'+fmt(debt):'—'}</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px">${debt>0?'repay to Cat Bank':'no debt'}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Net Worth</div>
+      <div class="stat-val ${worth<0?'red':'green'}">${fmt(worth)}</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px">wins: ${won}/${total}</div>
+    </div>`;
+}
+
+// ── PLAYER: MATCHES ─────────────────────────
+function renderPMatches(){
+  const rounds=[...new Set(S.matches.map(m=>m.roundLabel))];
+  let html='';
+  rounds.forEach(rl=>{
+    const ms=S.matches.filter(m=>m.roundLabel===rl&&!(m.p1==='TBD'&&m.p2==='TBD'));
+    if(!ms.length) return;
+    let inner='<div class="match-grid">';
+    ms.forEach(m=>{
+      // All bets by this player on this match (may be multiple)
+      const myBets=S.bets.filter(b=>b.matchId===m.id&&norm(b.playerName)===norm(S.currentUser)&&b.result!=='voided');
+      const myBetsActive=myBets.filter(b=>b.result===null);
+      const p1pot=S.bets.filter(b=>b.matchId===m.id&&norm(b.pick)===norm(m.p1)&&b.result!=='voided').reduce((s,b)=>s+b.amount,0);
+      const p2pot=S.bets.filter(b=>b.matchId===m.id&&norm(b.pick)===norm(m.p2)&&b.result!=='voided').reduce((s,b)=>s+b.amount,0);
+      const info=m.day?(m.day+(m.time?' · '+m.time:'')):'';
+
+      // Summary of this player's existing bets on this match
+      let myBetsSummary='';
+      if(myBets.length){
+        const lines=myBets.map(b=>{
+          const res=b.result==='won'?` — Won ${fmt(b.amount*BET_MULT)} 🎉`
+            :b.result==='lost'?` — Lost 💸`
+            :b.result==='walkover'?' — Walkover':' — Pending';
+          return `${fmt(b.amount)} on <strong>${b.pick}</strong>${res}`;
+        }).join('<br>');
+        myBetsSummary=`<div class="alert alert-gold" style="margin:6px 0;font-size:12px">${lines}</div>`;
+      }
+      inner+=`<div class="match-card">
+        <div class="row-between" style="margin-bottom:8px">
+          <span style="font-size:11px;color:var(--text-dim)">${m.id}${info?' · '+info:''}</span>
+          <span class="badge ${m.status==='done'?'badge-done':m.bettingOpen?'badge-open':'badge-closed'}">${m.status==='done'?'Finished':m.bettingOpen?'Betting open':'Betting closed'}</span>
+        </div>
+        <div class="match-vs">
+          <div class="match-player">
+            <div class="match-player-name ${m.winner===m.p1?'winner':''}">${m.p1}${m.winner===m.p1?' ✦':''}</div>
+            <div class="match-pot">${fmt(p1pot)} coins bet</div>
+          </div>
+          <div class="vs-sep">VS</div>
+          <div class="match-player">
+            <div class="match-player-name ${m.winner===m.p2?'winner':''}">${m.p2}${m.winner===m.p2?' ✦':''}</div>
+            <div class="match-pot">${fmt(p2pot)} coins bet</div>
+          </div>
+        </div>
+        ${myBetsSummary}
+        ${m.bettingOpen?`<button class="btn btn-gold btn-full" style="margin-top:6px" onclick="openBetModal('${m.id}')">${myBetsActive.length?'Add Another Bet':'Place Bet'}</button>`:''}
+      </div>`;
+    });
+    inner+='</div>';
+    const isDone=ms.every(m=>m.status==='done');
+    html+=roundSection(rl,inner,isDone);
+  });
+  document.getElementById('p-matches').innerHTML=html||'<div class="alert alert-info">No matches yet.</div>';
+}
+
+// ── PLAYER: LEADERBOARD ─────────────────────
+function renderLeaderboard(){
+  const ps=S.players.map(p=>({
+    ...p,
+    coins:   getCoins(p.name),
+    pending: getPendingStakes(p.name),
+    debt:    getDebt(p.name),
+    worth:   getNetWorth(p.name),   // ranking key — matches spreadsheet
+  })).sort((a,b)=>b.worth-a.worth);
+
+  const broke=ps.filter(p=>p.debt>0).sort((a,b)=>b.debt-a.debt);
+  const top5   = ps.slice(0,5);
+  const btm5   = ps.slice(-5).reverse();   // worst first, then reversed so #1 worst is on top
+
+  // ── helper: one compact highlight row ──────────────────────────────
+  function spotRow(p, rank, opts={}){
+    const isMe = norm(p.name)===norm(S.currentUser);
+    const pendingTag = p.pending>0
+      ? `<span style="font-size:10px;color:var(--gold);background:rgba(201,168,76,.12);
+           border:0.5px solid rgba(201,168,76,.3);border-radius:4px;padding:1px 6px;
+           margin-left:6px;vertical-align:middle">⏳ ${fmt(p.pending)}</span>`
+      : '';
+    const rankColor = opts.rankColor||'var(--gold)';
+    const worthColor = p.worth<0?'var(--red)':(opts.worthColor||'var(--green)');
+    return `<div style="display:flex;align-items:center;gap:12px;
+        padding:10px 16px;border-bottom:0.5px solid rgba(201,168,76,.07)">
+      <span style="font-family:'Cinzel',serif;font-size:13px;color:${rankColor};
+            width:32px;flex-shrink:0;text-align:center">#${rank}</span>
+      <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+        <div class="avatar" style="${avStyle(p.name)}">${initials(p.name)}</div>
+        <span style="font-weight:${isMe?'600':'400'};white-space:nowrap;
+              overflow:hidden;text-overflow:ellipsis">${p.name}${isMe?' <span style="font-size:11px;color:var(--text-dim)">(you)</span>':''}</span>
+        ${pendingTag}
+      </div>
+      <span style="font-family:'Cinzel',serif;font-size:15px;color:${worthColor};
+            flex-shrink:0">${fmt(p.worth)}</span>
+    </div>`;
+  }
+
+  // ── TOP 5 panel ─────────────────────────────────────────────────────
+  let html=`
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+
+    <div style="background:var(--bg2);border:0.5px solid rgba(201,168,76,.35);
+         border-radius:var(--radius);overflow:hidden">
+      <div style="padding:10px 16px;background:rgba(201,168,76,.07);
+           border-bottom:0.5px solid rgba(201,168,76,.2);
+           display:flex;align-items:center;gap:8px">
+        <span style="font-size:16px">🏆</span>
+        <span style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold);
+              letter-spacing:.04em">Top 5</span>
+        <span style="font-size:11px;color:var(--text-dim);margin-left:auto">Net Worth</span>
+      </div>
+      ${top5.map((p,i)=>{
+        const rankColors=['#F0D080','#C8D0D8','#C08040','var(--text-dim)','var(--text-dim)'];
+        return spotRow(p, i+1, {rankColor:rankColors[i]||'var(--text-dim)'});
+      }).join('')}
+    </div>
+
+    <div style="background:var(--bg2);border:0.5px solid rgba(192,64,64,.3);
+         border-radius:var(--radius);overflow:hidden">
+      <div style="padding:10px 16px;background:rgba(192,64,64,.06);
+           border-bottom:0.5px solid rgba(192,64,64,.2);
+           display:flex;align-items:center;gap:8px">
+        <span style="font-size:16px">🐱</span>
+        <span style="font-family:'Cinzel',serif;font-size:13px;color:var(--red);
+              letter-spacing:.04em">Cat Debt Zone</span>
+        <span style="font-size:11px;color:var(--text-dim);margin-left:auto">Net Worth</span>
+      </div>
+      ${btm5.map((p,i)=>{
+        const rank = ps.length - i;
+        return spotRow(p, rank, {rankColor:'var(--red)', worthColor:'var(--red)'});
+      }).join('')}
+    </div>
+
+  </div>`;
+
+  // ── full leaderboard table ───────────────────────────────────────────
+  html+=`<div class="sec">Full leaderboard</div>
+  <div class="tbl-wrap"><table>
+    <thead><tr>
+      <th style="width:36px"></th>
+      <th>Player</th>
+      <th>Status</th>
+      <th style="text-align:right">Available</th>
+      <th style="text-align:right">Pending</th>
+      <th style="text-align:right">Debt</th>
+      <th style="text-align:right">Net Worth</th>
+    </tr></thead><tbody>`;
+
+  ps.forEach((p,i)=>{
+    const rc=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-cell';
+    const isMe=norm(p.name)===norm(S.currentUser);
+    html+=`<tr>
+      <td><span class="${rc}">#${i+1}</span></td>
+      <td><div class="row" style="gap:8px">
+        <div class="avatar" style="${avStyle(p.name)}">${initials(p.name)}</div>
+        <span style="font-weight:${isMe?'500':'400'}">${p.name}${isMe?' <span style="font-size:11px;color:var(--text-dim)">(you)</span>':''}</span>
+      </div></td>
+      <td><span class="badge ${p.status==='active'?'badge-open':p.status==='eliminated'?'badge-closed':'badge-pending'}">${p.status}</span></td>
+      <td style="text-align:right;color:${p.coins<0?'var(--red)':'inherit'}">${fmt(p.coins)}</td>
+      <td style="text-align:right;color:${p.pending>0?'var(--gold)':'var(--text-dim)'}">${p.pending>0?fmt(p.pending):'—'}</td>
+      <td style="text-align:right;color:${p.debt>0?'var(--red)':'var(--text-dim)'}">${p.debt>0?'−'+fmt(p.debt):'—'}</td>
+      <td style="text-align:right;font-family:'Cinzel',serif;color:${p.worth<0?'var(--red)':'var(--green)'}">${fmt(p.worth)}</td>
+    </tr>`;
+  });
+
+  html+=`</tbody></table></div>`;
+
+  // ── Hall of Debt ─────────────────────────────────────────────────────
+  if(broke.length){
+    html+=`<div class="sec" style="margin-top:20px">🏦 Hall of Debt</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr>
+        <th style="width:36px"></th>
+        <th>Player</th>
+        <th style="text-align:right">Owes to Cat Bank</th>
+      </tr></thead><tbody>`;
+    broke.forEach((p,i)=>{
+      html+=`<tr>
+        <td><span class="rank-cell" style="color:var(--red)">#${i+1}</span></td>
+        <td><div class="row" style="gap:8px"><div class="avatar" style="${avStyle(p.name)}">${initials(p.name)}</div><span>${p.name}</span></div></td>
+        <td style="text-align:right;color:var(--red);font-family:'Cinzel',serif">−${fmt(p.debt)}</td>
+      </tr>`;
+    });
+    html+=`</tbody></table></div>`;
+  }
+
+  document.getElementById('p-leaderboard').innerHTML=html;
+}
+
+// ── PLAYER: MY BETS ─────────────────────────
+function renderMyBets(){
+  const mb=S.bets.filter(b=>norm(b.playerName)===norm(S.currentUser));
+  if(!mb.length){document.getElementById('p-mybets').innerHTML='<div class="alert alert-info">No bets placed yet.</div>';return;}
+  const rounds=[...new Set(mb.map(b=>{const m=S.matches.find(x=>x.id===b.matchId);return m?m.roundLabel:'Other';}))];
+  let html='';
+  rounds.forEach(rl=>{
+    const rBets=mb.filter(b=>{const m=S.matches.find(x=>x.id===b.matchId);return (m?m.roundLabel:'Other')===rl;});
+    let inner=`<div class="tbl-wrap"><table><thead><tr><th>Match</th><th>Pick</th><th style="text-align:right">Bet</th><th style="text-align:right">Result</th></tr></thead><tbody>`;
+    rBets.forEach(b=>{
+      const m=S.matches.find(x=>x.id===b.matchId);
+      const res=b.result==='won'?`<span class="badge badge-open">+${fmt(b.amount*BET_MULT)}</span>`:
+        b.result==='lost'?`<span class="badge badge-closed">-${fmt(b.amount)}</span>`:
+        b.result==='walkover'?`<span class="badge badge-walkover">Walkover</span>`:
+        b.result==='voided'?`<span class="badge badge-walkover">Voided</span>`:
+        `<span class="badge badge-pending">Pending</span>`;
+      inner+=`<tr><td style="font-size:12px">${b.matchId}${m?' · '+m.p1+' vs '+m.p2:''}</td><td style="font-weight:500">${b.pick}</td><td style="text-align:right">${fmt(b.amount)}</td><td style="text-align:right">${res}</td></tr>`;
+    });
+    inner+=`</tbody></table></div>`;
+    const allDone=rBets.every(b=>b.result!==null);
+    html+=roundSection(rl,inner,allDone);
+  });
+  document.getElementById('p-mybets').innerHTML=html;
+}
+
+// ── PLAYER: BANK ────────────────────────────
+function renderPBank(){
+  const name=S.currentUser,coins=getCoins(name),debt=getDebt(name);
+  const lr=getCurLR(),taken=getLoanTaken(name,S.currentRound),remaining=Math.max(0,lr.maxLoan-taken);
+  const active=S.loans.filter(l=>norm(l.playerName)===norm(name)&&!l.repaid);
+  let html=`<div class="stats-grid" style="grid-template-columns:1fr 1fr;margin-bottom:16px">
+    <div class="stat-card"><div class="stat-label">Current coins</div><div class="stat-val ${coins<0?'red':''}">${fmt(coins)}</div></div>
+    <div class="stat-card"><div class="stat-label">Outstanding debt</div><div class="stat-val ${debt>0?'red':''}">${debt>0?'-'+fmt(debt):'0'}</div></div>
+  </div>`;
+  if(lr.open&&lr.maxLoan>0){
+    html+=`<div class="sec">Take a loan — ${lr.label}</div><div class="card">
+      <div class="alert alert-gold" style="margin-bottom:12px">Max this round: <strong>${fmt(lr.maxLoan)}</strong> &nbsp;·&nbsp; 20% interest &nbsp;·&nbsp; Taken: <strong>${fmt(taken)}</strong> &nbsp;·&nbsp; Remaining: <strong>${fmt(remaining)}</strong></div>
+      ${remaining>0?`<div class="fg"><label class="lbl">Amount (max ${fmt(remaining)})</label>
+        <input type="number" id="loan-amount" min="1" max="${remaining}" placeholder="Amount..." oninput="document.getElementById('loan-owe').textContent=fmt(parseInt(this.value||0)*1.2)" /></div>
+        <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px">You will owe <span id="loan-owe" style="color:var(--red);font-weight:500">0</span> coins back</div>
+        <button class="btn btn-gold btn-full" onclick="takeLoan()">Borrow from Cat Bank</button>`
+      :'<div class="alert alert-danger">Loan limit reached for this round.</div>'}
+    </div>`;
+  } else {
+    html+=`<div class="alert alert-info" style="margin-top:8px">The Cat Bank is closed. Admin will open it for the next round.</div>`;
+  }
+  if(active.length){
+    html+=`<div class="sec">Active loans</div><div class="tbl-wrap"><table>
+      <thead><tr><th>Round</th><th style="text-align:right">Borrowed</th><th style="text-align:right">To repay (+20%)</th></tr></thead><tbody>`;
+    active.forEach(l=>{
+      html+=`<tr><td>Round ${l.loanRound}</td><td style="text-align:right">${fmt(l.amount)}</td><td style="text-align:right;color:var(--red)">${fmt(l.amount*1.2)}</td></tr>`;
+    });
+    html+=`</tbody></table></div>`;
+  }
+  document.getElementById('p-bank').innerHTML=html;
+}
+async function takeLoan(){
+  const name=S.currentUser,amount=parseInt(document.getElementById('loan-amount').value);
+  const lr=getCurLR(),taken=getLoanTaken(name,S.currentRound);
+  if(!amount||amount<=0){alert('Enter a valid amount');return;}
+  if(amount>lr.maxLoan-taken){alert('Exceeds loan limit');return;}
+  await _fsSet('loans','l'+Date.now(),{playerName:name,amount,loanRound:S.currentRound,repaid:false});
+}
+
+// ── BET MODAL ───────────────────────────────
+function openBetModal(matchId){
+  const m=S.matches.find(x=>x.id===matchId);if(!m)return;
+  const coins=getCoins(S.currentUser);
+  const user=norm(S.currentUser);
+
+  // Competitor integrity: if the player is in this match,
+  // they may only bet on themselves — not their opponent.
+  const isP1 = user===norm(m.p1);
+  const isP2 = user===norm(m.p2);
+  const isCompetitor = isP1||isP2;
+  const forbiddenPick = isP1?m.p2:isP2?m.p1:null; // opponent's name, or null if spectator
+
+  // Build pick options — hide forbidden side for competitors
+  let pickOpts='';
+  if(!forbiddenPick){
+    pickOpts=`<option value="${m.p1}">${m.p1}</option><option value="${m.p2}">${m.p2}</option>`;
+  } else {
+    const allowed=isP1?m.p1:m.p2;
+    pickOpts=`<option value="${allowed}">${allowed}</option>`;
+  }
+
+  // Summary of prior bets on this match (excluding voided)
+  const priorBets=S.bets.filter(b=>b.matchId===matchId&&norm(b.playerName)===user&&b.result!=='voided');
+  const priorHtml=priorBets.length
+    ? `<div class="alert alert-gold" style="margin-bottom:12px;font-size:12px">
+        <strong>Your existing bets:</strong><br>
+        ${priorBets.map(b=>`${fmt(b.amount)} on ${b.pick}${b.result===null?' (pending)':''}`).join('<br>')}
+       </div>`
+    : '';
+
+  const competitorNote=isCompetitor
+    ? `<div class="alert alert-info" style="margin-bottom:12px;font-size:12px">
+         You are competing in this match. You may only bet on yourself.
+       </div>`
+    : '';
+
+  document.getElementById('bet-modal-content').innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:center;gap:16px;background:var(--bg3);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px">
+      <div style="text-align:center;flex:1"><div class="match-player-name">${m.p1}</div></div>
+      <div class="vs-sep">VS</div>
+      <div style="text-align:center;flex:1"><div class="match-player-name">${m.p2}</div></div>
+    </div>
+    ${competitorNote}${priorHtml}
+    <div class="fg"><label class="lbl">Pick winner</label>
+      <select id="bet-pick">${pickOpts}</select></div>
+    <div class="fg"><label class="lbl">Amount — you have ${fmt(coins)} coins available</label>
+      <input type="number" id="bet-amount" min="1" max="${Math.max(coins,0)}" placeholder="Amount..." /></div>
+    <div class="alert alert-gold" style="margin-bottom:14px">Win = 2× your bet. Lose = lose your stake.</div>
+    <div id="bet-error" class="alert alert-danger hidden"></div>
+    <div class="btn-row">
+      <button class="btn" style="flex:1" onclick="closeModal('bet-modal')">Cancel</button>
+      <button class="btn btn-gold" style="flex:1" onclick="submitBet('${matchId}')">Confirm Bet</button>
+    </div>`;
+  document.getElementById('bet-modal').classList.remove('hidden');
+}
+async function submitBet(matchId){
+  const pick=document.getElementById('bet-pick').value;
+  const amount=parseInt(document.getElementById('bet-amount').value);
+  const coins=getCoins(S.currentUser);
+  if(!amount||amount<=0){showErr('bet-error','Enter a valid amount');return;}
+  if(amount>coins){showErr('bet-error','Not enough Cat Coins');return;}
+
+  // Server-side competitor integrity guard
+  const m=S.matches.find(x=>x.id===matchId);
+  if(m){
+    const user=norm(S.currentUser);
+    const isP1=user===norm(m.p1), isP2=user===norm(m.p2);
+    if(isP1&&norm(pick)===norm(m.p2)){showErr('bet-error','You cannot bet on your opponent');return;}
+    if(isP2&&norm(pick)===norm(m.p1)){showErr('bet-error','You cannot bet on your opponent');return;}
+  }
+
+  // Prevent double-submit
+  const btn=document.querySelector('#bet-modal .btn-gold:last-child');
+  if(btn){btn.disabled=true;btn.textContent='Placing...';}
+  await _fsSet('bets','b'+Date.now(),{matchId,playerName:S.currentUser,pick,amount,result:null});
+  closeModal('bet-modal');
+}
+
+// ── ADMIN: MATCHES ──────────────────────────
+function renderAMatches(){
+  const rounds=[...new Set(S.matches.map(m=>m.roundLabel))];
+  let html=`<div style="margin-bottom:14px"><button class="btn btn-gold btn-sm" onclick="openAddMatchModal()">+ Add Match</button></div>`;
+  rounds.forEach(rl=>{
+    let inner='';
+    S.matches.filter(m=>m.roundLabel===rl).forEach(m=>{
+      const bc=S.bets.filter(b=>b.matchId===m.id).length;
+      const p1p=S.bets.filter(b=>b.matchId===m.id&&norm(b.pick)===norm(m.p1)).reduce((s,b)=>s+b.amount,0);
+      const p2p=S.bets.filter(b=>b.matchId===m.id&&norm(b.pick)===norm(m.p2)).reduce((s,b)=>s+b.amount,0);
+      const isTBD=m.p1==='TBD'&&m.p2==='TBD';
+      inner+=`<div class="match-card">
+        <div class="row-between" style="margin-bottom:8px">
+          <div class="row" style="gap:6px">
+            <span style="font-size:11px;color:var(--gold)">${m.id}</span>
+            ${m.day?`<span style="font-size:11px;color:var(--text-dim)">${m.day}${m.time?' · '+m.time:''}</span>`:''}
+          </div>
+          <span class="badge ${m.status==='done'?'badge-done':m.bettingOpen?'badge-open':'badge-closed'}">${m.status==='done'?'Finished':m.bettingOpen?'Betting open':'Betting closed'}</span>
+        </div>
+        <div class="match-vs" style="margin:8px 0">
+          <div class="match-player"><div class="match-player-name ${m.winner===m.p1?'winner':''}">${m.p1}${m.winner===m.p1?' ✦':''}</div><div class="match-pot">${fmt(p1p)} coins</div></div>
+          <div class="vs-sep">VS</div>
+          <div class="match-player"><div class="match-player-name ${m.winner===m.p2?'winner':''}">${m.p2}${m.winner===m.p2?' ✦':''}</div><div class="match-pot">${fmt(p2p)} coins</div></div>
+        </div>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">${bc} bet(s) · pot: ${fmt(p1p+p2p)}</div>
+        ${m.winner?`<div class="alert alert-success" style="margin-bottom:8px;padding:6px 12px">Winner: <strong>${m.winner}</strong></div>`:''}
+        <div class="btn-row">
+          ${!isTBD&&m.status!=='done'&&m.bettingOpen?`<button class="btn btn-sm btn-danger" onclick="toggleBetting('${m.id}',false)">Close betting</button>`:''}
+          ${!isTBD&&m.status!=='done'&&!m.bettingOpen?`<button class="btn btn-sm btn-success" onclick="toggleBetting('${m.id}',true)">Open betting</button>`:''}
+          ${!isTBD&&m.status!=='done'?`
+            <button class="btn btn-sm btn-success" onclick="declareWinner('${m.id}','${m.p1}')">✦ ${m.p1} wins</button>
+            <button class="btn btn-sm btn-success" onclick="declareWinner('${m.id}','${m.p2}')">✦ ${m.p2} wins</button>
+            <button class="btn btn-sm" onclick="declareWalkover('${m.id}')">Walkover</button>`:''}
+          <button class="btn btn-sm" onclick="editMatch('${m.id}')">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteMatch('${m.id}')">Delete</button>
+        </div>
+      </div>`;
+    });
+    const isDone=S.matches.filter(m=>m.roundLabel===rl).every(m=>m.status==='done');
+    html+=roundSection(rl,inner,isDone);
+  });
+  document.getElementById('a-matches').innerHTML=html;
+}
+async function toggleBetting(id,open){await _fsUpd('matches',id,{bettingOpen:open});}
+async function declareWinner(id,winner){
+  if(!confirm(`Declare ${winner} as winner? This settles all bets.`))return;
+  await _fsUpd('matches',id,{winner,status:'done',bettingOpen:false});
+  const bb=writeBatch(_db);
+  S.bets.filter(b=>b.matchId===id&&b.result===null).forEach(b=>{
+    bb.update(doc(_db,'bets',b.id),{result:norm(b.pick)===norm(winner)?'won':'lost'});
+  });
+  await bb.commit();
+}
+async function declareWalkover(id){
+  if(!confirm('Mark this match as walkover? All bets will be refunded.'))return;
+  await _fsUpd('matches',id,{status:'done',bettingOpen:false,winner:'Walkover'});
+  const bb=writeBatch(_db);
+  S.bets.filter(b=>b.matchId===id&&b.result===null).forEach(b=>{
+    bb.update(doc(_db,'bets',b.id),{result:'walkover'});
+  });
+  await bb.commit();
+  // onSnapshot will fire and refresh the view automatically
+}
+async function deleteMatch(id){
+  if(!confirm('Delete this match and its bets?'))return;
+  await _fsDel('matches',id);
+  const bb=writeBatch(_db);
+  S.bets.filter(b=>b.matchId===id).forEach(b=>bb.delete(doc(_db,'bets',b.id)));
+  await bb.commit();
+}
+function openAddMatchModal(){
+  document.getElementById('add-match-title').textContent='Add Match';
+  const rOpts=S.loanRounds.map(r=>`<option value="${r.round}">${r.label}</option>`).join('');
+  document.getElementById('add-match-content').innerHTML=`
+    <div class="fg"><label class="lbl">Round</label><select id="nm-round">${rOpts}</select></div>
+    <div class="fg"><label class="lbl">Match ID (e.g. M21)</label><input type="text" id="nm-id" placeholder="M21" /></div>
+    <div class="fg"><label class="lbl">Player 1</label><input type="text" id="nm-p1" placeholder="Name..." /></div>
+    <div class="fg"><label class="lbl">Player 2</label><input type="text" id="nm-p2" placeholder="Name..." /></div>
+    <div class="fg"><label class="lbl">Day</label><input type="text" id="nm-day" placeholder="e.g. WED" /></div>
+    <div class="fg"><label class="lbl">Time</label><input type="text" id="nm-time" placeholder="e.g. 20:00" /></div>
+    <div class="fg"><label class="lbl">Betting</label><select id="nm-betting"><option value="true">Open now</option><option value="false">Closed</option></select></div>
+    <div id="add-match-error" class="alert alert-danger hidden"></div>
+    <div class="btn-row" style="margin-top:4px">
+      <button class="btn" style="flex:1" onclick="closeModal('add-match-modal')">Cancel</button>
+      <button class="btn btn-gold" style="flex:1" onclick="submitAddMatch()">Add Match</button>
+    </div>`;
+  document.getElementById('add-match-modal').classList.remove('hidden');
+}
+function editMatch(id){
+  const m=S.matches.find(x=>x.id===id);if(!m)return;
+  document.getElementById('add-match-title').textContent='Edit Match';
+  const rOpts=S.loanRounds.map(r=>`<option value="${r.round}" ${r.round===m.round?'selected':''}>${r.label}</option>`).join('');
+  document.getElementById('add-match-content').innerHTML=`
+    <div class="fg"><label class="lbl">Round</label><select id="nm-round">${rOpts}</select></div>
+    <div class="fg"><label class="lbl">Match ID</label><input type="text" id="nm-id" value="${m.id}" /></div>
+    <div class="fg"><label class="lbl">Player 1</label><input type="text" id="nm-p1" value="${m.p1}" /></div>
+    <div class="fg"><label class="lbl">Player 2</label><input type="text" id="nm-p2" value="${m.p2}" /></div>
+    <div class="fg"><label class="lbl">Day</label><input type="text" id="nm-day" value="${m.day||''}" /></div>
+    <div class="fg"><label class="lbl">Time</label><input type="text" id="nm-time" value="${m.time||''}" /></div>
+    <div class="fg"><label class="lbl">Betting</label><select id="nm-betting"><option value="true" ${m.bettingOpen?'selected':''}>Open</option><option value="false" ${!m.bettingOpen?'selected':''}>Closed</option></select></div>
+    <div id="add-match-error" class="alert alert-danger hidden"></div>
+    <div class="btn-row" style="margin-top:4px">
+      <button class="btn" style="flex:1" onclick="closeModal('add-match-modal')">Cancel</button>
+      <button class="btn btn-gold" style="flex:1" onclick="submitEditMatch('${id}')">Save</button>
+    </div>`;
+  document.getElementById('add-match-modal').classList.remove('hidden');
+}
+async function submitAddMatch(){
+  const rn=parseInt(document.getElementById('nm-round').value);
+  const lr=S.loanRounds.find(r=>r.round===rn);
+  const id=document.getElementById('nm-id').value.trim();
+  const p1=document.getElementById('nm-p1').value.trim();
+  const p2=document.getElementById('nm-p2').value.trim();
+  if(!p1||!p2){showErr('add-match-error','Enter both player names');return;}
+  if(!id){showErr('add-match-error','Enter a match ID');return;}
+  if(S.matches.find(m=>m.id===id)){showErr('add-match-error','Match ID already exists');return;}
+  await _fsSet('matches',id,{id,round:rn,roundLabel:lr.label,p1,p2,status:'pending',winner:null,
+    bettingOpen:document.getElementById('nm-betting').value==='true',
+    day:document.getElementById('nm-day').value.trim(),
+    time:document.getElementById('nm-time').value.trim()});
+  closeModal('add-match-modal');
+}
+async function submitEditMatch(origId){
+  const m=S.matches.find(x=>x.id===origId);if(!m)return;
+  const rn=parseInt(document.getElementById('nm-round').value);
+  const lr=S.loanRounds.find(r=>r.round===rn);
+  m.id=document.getElementById('nm-id').value.trim()||origId;
+  await _fsUpd('matches',origId,{round:rn,roundLabel:lr?lr.label:'Round '+rn,
+    p1:document.getElementById('nm-p1').value.trim(),
+    p2:document.getElementById('nm-p2').value.trim(),
+    day:document.getElementById('nm-day').value.trim(),
+    time:document.getElementById('nm-time').value.trim(),
+    bettingOpen:document.getElementById('nm-betting').value==='true'});
+  closeModal('add-match-modal');
+}
+
+// ── ADMIN: PLAYERS ──────────────────────────
+function renderAPlayers(){
+  const sorted=[...S.players].sort((a,b)=>a.name.localeCompare(b.name));
+  let html=`<div style="margin-bottom:14px"><button class="btn btn-gold btn-sm" onclick="document.getElementById('add-player-modal').classList.remove('hidden')">+ Add Player</button></div>
+  <div class="tbl-wrap"><table><thead><tr>
+    <th>Player</th><th>Status</th>
+    <th style="text-align:right">Available</th>
+    <th style="text-align:right">Pending</th>
+    <th style="text-align:right">Debt</th>
+    <th style="text-align:right">Net Worth</th>
+    <th></th>
+  </tr></thead><tbody>`;
+  sorted.forEach(p=>{
+    const coins   = getCoins(p.name);
+    const pending = getPendingStakes(p.name);
+    const debt    = getDebt(p.name);
+    const worth   = getNetWorth(p.name);
+    html+=`<tr>
+      <td><div class="row" style="gap:8px"><div class="avatar" style="${avStyle(p.name)}">${initials(p.name)}</div><span style="font-weight:500">${p.name}</span></div></td>
+      <td><select style="width:auto;font-size:12px;padding:4px 8px" onchange="changeStatus('${p.id}',this.value)">
+        <option ${p.status==='active'?'selected':''} value="active">Active</option>
+        <option ${p.status==='eliminated'?'selected':''} value="eliminated">Eliminated</option>
+        <option ${p.status==='spectator'?'selected':''} value="spectator">Spectator</option>
+      </select></td>
+      <td style="text-align:right;color:${coins<0?'var(--red)':'inherit'}">${fmt(coins)}</td>
+      <td style="text-align:right;color:${pending>0?'var(--gold)':'var(--text-dim)'}">${pending>0?fmt(pending):'—'}</td>
+      <td style="text-align:right;color:${debt>0?'var(--red)':'var(--text-dim)'}">${debt>0?'−'+fmt(debt):'—'}</td>
+      <td style="text-align:right;color:${worth<0?'var(--red)':'var(--green)'}">${fmt(worth)}</td>
+      <td><button class="btn btn-sm" onclick="openAdjust('${p.name}')">± Adjust</button></td>
+    </tr>`;
+  });
+  html+=`</tbody></table></div>`;
+  document.getElementById('a-players').innerHTML=html;
+}
+async function changeStatus(id,status){await _fsUpd('players',id,{status});}
+async function submitAddPlayer(){
+  const name=document.getElementById('new-player-name').value.trim();
+  const status=document.getElementById('new-player-status').value;
+  if(!name){showErr('add-player-error','Enter a name');return;}
+  if(findPlayer(name)){showErr('add-player-error','Player already exists');return;}
+  await _fsSet('players','p'+Date.now(),{name,status});
+  closeModal('add-player-modal');document.getElementById('new-player-name').value='';
+}
+function openAdjust(name){
+  document.getElementById('adjust-content').innerHTML=`
+    <div style="margin-bottom:12px;color:var(--text-dim)">Adjust <strong style="color:var(--text)">${name}</strong></div>
+    <div class="fg"><label class="lbl">Delta (+ add / - deduct)</label><input type="number" id="adj-delta" placeholder="e.g. 200 or -100" /></div>
+    <div class="fg"><label class="lbl">Reason</label><input type="text" id="adj-reason" placeholder="e.g. Audience wheel spin" /></div>
+    <div class="btn-row" style="margin-top:4px">
+      <button class="btn" style="flex:1" onclick="closeModal('adjust-modal')">Cancel</button>
+      <button class="btn btn-gold" style="flex:1" onclick="submitAdjust('${name}')">Apply</button>
+    </div>`;
+  document.getElementById('adjust-modal').classList.remove('hidden');
+}
+async function submitAdjust(name){
+  const delta=parseInt(document.getElementById('adj-delta').value);
+  const reason=document.getElementById('adj-reason').value.trim();
+  if(isNaN(delta)){alert('Enter a valid number');return;}
+  await _fsSet('adjustments','adj'+Date.now(),{playerName:name,delta,reason,date:new Date().toISOString()});
+  closeModal('adjust-modal');
+}
+
+// ── ADMIN: BANK ─────────────────────────────
+function renderABank(){
+  let html=`<div class="sec">Loan rounds</div>`;
+  S.loanRounds.forEach((lr,i)=>{
+    html+=`<div class="card"><div class="row-between">
+      <div><div style="font-weight:500">${lr.label}</div><div style="font-size:12px;color:var(--text-dim)">Max: ${fmt(lr.maxLoan)} · 20% interest</div></div>
+      <div class="row" style="gap:8px">
+        <span class="badge ${lr.open?'badge-open':'badge-closed'}">${lr.open?'Open':'Closed'}</span>
+        <button class="btn btn-sm ${lr.open?'btn-danger':'btn-success'}" onclick="toggleLR(${i})">${lr.open?'Close':'Open'}</button>
+      </div></div>
+      <div class="row" style="margin-top:10px;gap:8px">
+        <input type="number" id="lr-${i}" value="${lr.maxLoan}" style="width:140px" />
+        <button class="btn btn-sm" onclick="updateLRMax(${i})">Update max</button>
+      </div>
+    </div>`;
+  });
+  html+=`<div class="sec" style="margin-top:20px">All loans</div><div class="tbl-wrap"><table>
+    <thead><tr><th>Player</th><th>Round</th><th style="text-align:right">Borrowed</th><th style="text-align:right">Owes</th><th>Status</th></tr></thead><tbody>`;
+  if(!S.loans.length) html+=`<tr><td colspan="5" style="text-align:center;color:var(--text-dim)">No loans</td></tr>`;
+  S.loans.forEach(l=>{
+    html+=`<tr><td>${l.playerName}</td><td>R${l.loanRound}</td>
+      <td style="text-align:right">${fmt(l.amount)}</td>
+      <td style="text-align:right;color:var(--red)">${fmt(l.amount*1.2)}</td>
+      <td><span class="badge ${l.repaid?'badge-done':'badge-pending'}">${l.repaid?'Repaid':'Outstanding'}</span>
+        ${!l.repaid?`<button class="btn btn-sm btn-success" style="margin-left:6px" onclick="markRepaid('${l.id}')">Mark repaid</button>`:''}</td>
+    </tr>`;
+  });
+  html+=`</tbody></table></div>`;
+  document.getElementById('a-bank').innerHTML=html;
+}
+async function toggleLR(i){
+  const lrs=[...S.loanRounds];lrs[i]={...lrs[i],open:!lrs[i].open};
+  const oi=lrs.findIndex(r=>r.open);
+  await _fsCfg({loanRounds:lrs,currentRound:oi>=0?lrs[oi].round:S.currentRound});
+}
+async function updateLRMax(i){const v=parseInt(document.getElementById('lr-'+i).value);if(isNaN(v)||v<0)return;const lrs=[...S.loanRounds];lrs[i]={...lrs[i],maxLoan:v};await _fsCfg({loanRounds:lrs});}
+async function markRepaid(id){await _fsUpd('loans',id,{repaid:true});}
+
+// ── ADMIN: AUDIENCE ─────────────────────────
+// Workflow: paste names → fuzzy match → review individual rows → award one at a time.
+// No bulk auto-payout. Every award is a separate auditable Firestore write.
+function renderAudience(){
+  const today=new Date().toISOString().slice(0,10);
+  // Build set of (playerName_lower + note_lower) already awarded today for dupe detection
+  const todayAwards=new Set(
+    (S.adjustments||[])
+      .filter(a=>a.reason&&a.reason.toLowerCase().includes('audience')&&(a.date||'').slice(0,10)===today)
+      .map(a=>norm(a.playerName)+'||'+(a.reason||'').toLowerCase())
+  );
+
+  const html=`
+    <div class="card">
+      <div style="font-weight:500;margin-bottom:4px">Step 1 — Paste names to match</div>
+      <div style="font-size:13px;color:var(--text-dim);margin-bottom:10px">
+        Paste your collated audience/viewer list. The app will fuzzy-match against guild members
+        and generate individual award rows. You confirm each award separately.
+      </div>
+      <div class="fg"><label class="lbl">Paste names (one per line)</label>
+        <textarea id="audience-paste" rows="5" placeholder="Paste names here, one per line..."></textarea></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-gold" onclick="parseAudience()">Match names →</button>
+        <div style="font-size:12px;color:var(--text-dim)">No awards are sent until you click Award on each individual row.</div>
+      </div>
+    </div>
+    <div id="audience-result"></div>
+    <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin:20px 0 8px;padding-bottom:6px;border-bottom:0.5px solid var(--border)">Award history (audience only)</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Player</th><th style="text-align:right">Amount</th><th>Note</th><th>Date</th></tr></thead>
+      <tbody>${(()=>{
+        const rows=(S.adjustments||[]).filter(a=>a.reason&&a.reason.toLowerCase().includes('audience')).slice().reverse();
+        if(!rows.length) return '<tr><td colspan="4" style="text-align:center;color:var(--text-dim)">No awards yet</td></tr>';
+        return rows.map(a=>`<tr>
+          <td>${a.playerName}</td>
+          <td style="text-align:right;color:var(--green)">+${fmt(a.delta)}</td>
+          <td style="font-size:12px;color:var(--text-dim)">${a.reason||''}</td>
+          <td style="font-size:12px;color:var(--text-dim)">${(a.date||'').slice(0,10)}</td>
+        </tr>`).join('');
+      })()}</tbody>
+    </table></div>`;
+  document.getElementById('a-audience').innerHTML=html;
+}
+
+function parseAudience(){
+  const raw=document.getElementById('audience-paste').value;
+  if(!raw.trim()){alert('Paste some names first');return;}
+  const lines=raw.split(/\n/).map(l=>l.trim()).filter(Boolean);
+  const today=new Date().toISOString().slice(0,10);
+
+  // Fuzzy match each line against known players
+  const matched=[];
+  S.players.forEach(p=>{
+    const pn=norm(p.name);
+    if(lines.some(line=>norm(line)===pn||norm(line).includes(pn)||pn.includes(norm(line))))
+      matched.push(p.name);
+  });
+  const unmatched=lines.filter(line=>{
+    const ln=norm(line);
+    return !S.players.find(p=>norm(p.name)===ln||norm(p.name).includes(ln)||ln.includes(norm(p.name)));
+  });
+
+  if(!matched.length){
+    document.getElementById('audience-result').innerHTML=
+      '<div class="alert alert-danger" style="margin-top:12px">No guild members matched. Check the names and try again.</div>';
+    return;
+  }
+
+  // Build per-player award rows — no bulk button, no modal
+  // Each row has its own amount + note + Award button
+  let rows='';
+  matched.forEach((name,i)=>{
+    // Check if this player already has an award today (any note) — warn but don't block
+    const alreadyToday=(S.adjustments||[]).some(a=>
+      norm(a.playerName)===norm(name) &&
+      a.reason&&a.reason.toLowerCase().includes('audience') &&
+      (a.date||'').slice(0,10)===today
+    );
+    const warnHtml=alreadyToday
+      ? `<span style="font-size:11px;color:var(--gold);margin-left:6px">⚠ already awarded today</span>`
+      : '';
+    rows+=`<tr>
+      <td style="font-weight:500">${name}${warnHtml}</td>
+      <td><input type="number" id="aud-amt-${i}" placeholder="coins" min="1"
+        style="width:90px;padding:5px 8px;font-size:13px" /></td>
+      <td><input type="text" id="aud-note-${i}" value="Audience bonus"
+        style="padding:5px 8px;font-size:13px" /></td>
+      <td><button class="btn btn-sm btn-gold" onclick="awardOne(${JSON.stringify(name)},${i})">Award</button></td>
+    </tr>`;
+  });
+
+  let html=`
+    <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 8px;padding-bottom:6px;border-bottom:0.5px solid var(--border)">
+      Step 2 — ${matched.length} members matched · award individually
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Player</th><th>Coins</th><th>Note</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+
+  if(unmatched.length){
+    html+=`<div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin:14px 0 6px">
+      Not matched (${unmatched.length}) — review manually
+    </div><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">`;
+    unmatched.slice(0,40).forEach(n=>{html+=`<span class="audience-tag">${n}</span>`;});
+    html+=`</div>`;
+  }
+  document.getElementById('audience-result').innerHTML=html;
+}
+
+async function awardOne(playerName, rowIdx){
+  const amountEl=document.getElementById('aud-amt-'+rowIdx);
+  const noteEl=document.getElementById('aud-note-'+rowIdx);
+  const amount=parseInt(amountEl.value);
+  const note=(noteEl.value||'Audience bonus').trim();
+  if(!amount||amount<=0){amountEl.style.borderColor='var(--red)';amountEl.focus();return;}
+  amountEl.style.borderColor='';
+
+  // Write individual Firestore adjustment
+  const btn=document.querySelector(`#audience-result tr:nth-child(${rowIdx+1}) .btn-gold`);
+  if(btn){btn.disabled=true;btn.textContent='Saving...';}
+  await _fsSet('adjustments','adj'+Date.now()+'_'+norm(playerName).replace(/[^a-z0-9]/g,''),
+    {playerName,delta:amount,reason:'Audience — '+note,date:new Date().toISOString()});
+
+  // Mark row as done visually — disable inputs and button
+  if(amountEl) amountEl.disabled=true;
+  if(noteEl) noteEl.disabled=true;
+  if(btn){btn.disabled=true;btn.textContent='✓ Awarded';btn.className='btn btn-sm btn-success';}
+
+  // Refresh the award history table below without clearing the matched list
+  _refreshAudienceHistory();
+}
+
+function _refreshAudienceHistory(){
+  // Only refresh the history table, not the whole tab (preserves the matched rows the admin is working through)
+  const tableBody=document.querySelector('#a-audience .tbl-wrap:last-of-type tbody');
+  if(!tableBody) return;
+  const rows=(S.adjustments||[]).filter(a=>a.reason&&a.reason.toLowerCase().includes('audience')).slice().reverse();
+  tableBody.innerHTML=rows.length
+    ? rows.map(a=>`<tr>
+        <td>${a.playerName}</td>
+        <td style="text-align:right;color:var(--green)">+${fmt(a.delta)}</td>
+        <td style="font-size:12px;color:var(--text-dim)">${a.reason||''}</td>
+        <td style="font-size:12px;color:var(--text-dim)">${(a.date||'').slice(0,10)}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="4" style="text-align:center;color:var(--text-dim)">No awards yet</td></tr>';
+}
+
+// ── ADMIN: SETTINGS ─────────────────────────
+function renderASettings(){
+  document.getElementById('a-settings').innerHTML=`
+    <div class="card">
+      <div style="font-weight:500;margin-bottom:8px">Export & backup</div>
+      <div class="btn-row">
+        <button class="btn btn-gold btn-sm" onclick="exportData()">Export JSON</button>
+        <button class="btn btn-sm" onclick="importData()">Import JSON</button>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-weight:500;margin-bottom:8px">Reset player PIN</div>
+      <div style="font-size:13px;color:var(--text-dim);margin-bottom:10px">Reset a player's PIN so they can set a new one on next login.</div>
+      <div style="display:flex;gap:8px">
+        <select id="reset-pin-player" style="flex:1">${S.players.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${p.name}">${p.name}</option>`).join('')}</select>
+        <button class="btn btn-sm btn-danger" onclick="resetPin()">Reset PIN</button>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-weight:500;margin-bottom:8px">Event info</div>
+      <div style="font-size:13px;color:var(--text-dim)">Starting coins: <strong style="color:var(--text)">200</strong> &nbsp;·&nbsp; Bet: <strong style="color:var(--text)">2×</strong> &nbsp;·&nbsp; Loan interest: <strong style="color:var(--text)">20%</strong><br>
+        Admin password: <code style="background:var(--bg3);padding:2px 6px;border-radius:4px">${ADMIN_PW}</code></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:500;margin-bottom:8px;color:var(--red)">Danger zone</div>
+      <button class="btn btn-sm btn-danger" onclick="clearAll()">Reset all data</button>
+    </div>`;
+}
+async function resetPin(){
+  const name=document.getElementById('reset-pin-player').value;
+  if(!confirm(`Reset PIN for ${name}?`))return;
+  const newPins={...S.pins};delete newPins[norm(name)];
+  await _fsCfg({pins:newPins});alert('PIN reset for '+name);
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='wwm_event_'+new Date().toISOString().slice(0,10)+'.json';a.click();
+}
+function importData(){
+  const inp=document.createElement('input');inp.type='file';inp.accept='.json';
+  inp.onchange=e=>{
+    const f=e.target.files[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=ev=>{try{S={...S,...JSON.parse(ev.target.result)};save();alert('Imported!');location.reload();}catch{alert('Invalid JSON');}};
+    r.readAsText(f);
+  };inp.click();
+}
+function clearAll(){if(confirm('Reset ALL data?')){localStorage.removeItem('wwm_v4');location.reload();}}
+
+// ── REALTIME LISTENERS ──────────────────────
+function subscribeAll(){
+  _unsubs.forEach(u=>u());_unsubs=[];
+  _unsubs.push(onSnapshot(_col.players(),snap=>{
+    S.players=snap.docs.map(d=>({id:d.id,...d.data()}));
+    S.players.sort((a,b)=>a.name.localeCompare(b.name));
+    refreshCurrentView();
+  }));
+  _unsubs.push(onSnapshot(_col.matches(),snap=>{
+    S.matches=snap.docs.map(d=>({id:d.id,...d.data()}));
+    S.matches.sort((a,b)=>{const n=x=>parseInt((x.id||'').replace(/\D/g,''))||0;return n(a)-n(b);});
+    refreshCurrentView();
+  }));
+  _unsubs.push(onSnapshot(_col.bets(),snap=>{
+    S.bets=snap.docs.map(d=>({id:d.id,...d.data()}));
+    refreshCurrentView();
+  }));
+  _unsubs.push(onSnapshot(_col.loans(),snap=>{
+    S.loans=snap.docs.map(d=>({id:d.id,...d.data()}));
+    refreshCurrentView();
+  }));
+  _unsubs.push(onSnapshot(_col.adjustments(),snap=>{
+    S.adjustments=snap.docs.map(d=>({id:d.id,...d.data()}));
+    refreshCurrentView();
+  }));
+  _unsubs.push(onSnapshot(_cfgDoc(),snap=>{
+    if(snap.exists()){const d=snap.data();Object.assign(S,{loanRounds:d.loanRounds||S.loanRounds,currentRound:d.currentRound||S.currentRound,pins:d.pins||{},collapsedRounds:d.collapsedRounds||{}});}
+    refreshCurrentView();
+  }));
+  _setSyncDot('live');
+}
+
+function refreshCurrentView(){
+  if(!S.currentUser)return;
+  if(isAdmin){
+    if(_curATab==='a-matches')renderAMatches();
+    else if(_curATab==='a-players')renderAPlayers();
+    else if(_curATab==='a-bank')renderABank();
+    else if(_curATab==='a-audience')renderAudience();
+    else if(_curATab==='a-corrections')renderACorrections();
+  } else {
+    refreshStats();
+    if(_curPTab==='p-matches')renderPMatches();
+    else if(_curPTab==='p-leaderboard')renderLeaderboard();
+    else if(_curPTab==='p-mybets')renderMyBets();
+    else if(_curPTab==='p-bank')renderPBank();
+  }
+}
+
+// ── ADMIN: CORRECTIONS ──────────────────────
+// Full bet and adjustment correction system.
+// All writes go directly to Firestore. Edits stamp adminNote + adminEditedAt.
+// Players cannot reach any of these functions — admin-only.
+
+let _corrView='match'; // 'match' | 'player'
+
+function renderACorrections(){
+  const matchOpts=S.matches.map(m=>`<option value="${m.id}">${m.id}: ${m.p1} vs ${m.p2} (${m.status})</option>`).join('');
+  const playerOpts=[...S.players].sort((a,b)=>a.name.localeCompare(b.name))
+    .map(p=>`<option value="${p.name}">${p.name}</option>`).join('');
+
+  // Adjustment rows (last 100, newest first)
+  const adjRows=[...(S.adjustments||[])].reverse().slice(0,100).map(a=>`<tr>
+    <td style="font-size:12px">${a.playerName}</td>
+    <td style="text-align:right;color:${a.delta>=0?'var(--green)':'var(--red)'}">${a.delta>=0?'+':''}${fmt(a.delta)}</td>
+    <td style="font-size:12px;color:var(--text-dim);max-width:180px;overflow:hidden;text-overflow:ellipsis">${(a.reason||'').slice(0,50)}</td>
+    <td style="font-size:11px;color:var(--text-dim)">${(a.date||'').slice(0,10)}</td>
+    <td><button class="btn btn-sm btn-danger" onclick="deleteAdj('${a.id}')">Delete</button></td>
+  </tr>`).join('');
+
+  document.getElementById('a-corrections').innerHTML=`
+    <div class="alert alert-gold" style="margin-bottom:14px">
+      <strong>Corrections panel</strong> — writes go directly to Firestore.
+      Edits are stamped with a reason and timestamp for auditability. Prefer soft-void over hard delete.
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">View bets by</div>
+      <div class="btn-row">
+        <button class="btn btn-sm ${_corrView==='match'?'btn-gold':''}" onclick="setCorrView('match')">Match</button>
+        <button class="btn btn-sm ${_corrView==='player'?'btn-gold':''}" onclick="setCorrView('player')">Player</button>
+      </div>
+    </div>
+
+    <div id="corr-selector-match" ${_corrView!=='match'?'style="display:none"':''}>
+      <div class="fg"><label class="lbl">Select match</label>
+        <select id="corr-match-sel" onchange="loadCorrBets('match')">${matchOpts}</select>
+      </div>
+    </div>
+    <div id="corr-selector-player" ${_corrView!=='player'?'style="display:none"':''}>
+      <div class="fg"><label class="lbl">Select player</label>
+        <select id="corr-player-sel" onchange="loadCorrBets('player')">${playerOpts}</select>
+      </div>
+    </div>
+
+    <div id="corr-bets-table">
+      <div style="color:var(--text-dim);font-size:13px;padding:8px 0">Select a match or player above to view bets.</div>
+    </div>
+
+    <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin:24px 0 8px;padding-bottom:6px;border-bottom:0.5px solid var(--border)">Adjustments (last 100)</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Player</th><th style="text-align:right">Delta</th><th>Reason</th><th>Date</th><th></th></tr></thead>
+      <tbody>${adjRows||'<tr><td colspan="5" style="text-align:center;color:var(--text-dim)">No adjustments</td></tr>'}</tbody>
+    </table></div>`;
+}
+
+function setCorrView(view){
+  _corrView=view;
+  // Toggle selector visibility
+  const mEl=document.getElementById('corr-selector-match');
+  const pEl=document.getElementById('corr-selector-player');
+  if(mEl) mEl.style.display=view==='match'?'':'none';
+  if(pEl) pEl.style.display=view==='player'?'':'none';
+  // Update button styles
+  document.querySelectorAll('#a-corrections .btn-sm').forEach(b=>{
+    b.classList.toggle('btn-gold',
+      (b.textContent==='Match'&&view==='match')||(b.textContent==='Player'&&view==='player'));
+  });
+  document.getElementById('corr-bets-table').innerHTML=
+    '<div style="color:var(--text-dim);font-size:13px;padding:8px 0">Select a match or player above to view bets.</div>';
+}
+
+function loadCorrBets(mode){
+  mode=mode||_corrView;
+  let bets, title;
+  if(mode==='match'){
+    const matchId=document.getElementById('corr-match-sel')?.value;
+    if(!matchId) return;
+    const m=S.matches.find(x=>x.id===matchId);
+    bets=S.bets.filter(b=>b.matchId===matchId);
+    title=matchId+(m?`: ${m.p1} vs ${m.p2}`:'');
+  } else {
+    const player=document.getElementById('corr-player-sel')?.value;
+    if(!player) return;
+    bets=S.bets.filter(b=>norm(b.playerName)===norm(player));
+    title=`All bets for ${player}`;
+  }
+
+  if(!bets.length){
+    document.getElementById('corr-bets-table').innerHTML='<div class="alert alert-info" style="margin-top:8px">No bets found.</div>';
+    return;
+  }
+
+  // Sort: pending first, then by match id
+  const sorted=[...bets].sort((a,b)=>{
+    if((a.result===null)!==(b.result===null)) return a.result===null?-1:1;
+    return (a.matchId||'').localeCompare(b.matchId||'');
+  });
+
+  const allPlayerOpts=[...S.players].sort((a,b)=>a.name.localeCompare(b.name))
+    .map(p=>`<option value="${p.name}">${p.name}</option>`).join('');
+
+  const rows=sorted.map(b=>{
+    const m=S.matches.find(x=>x.id===b.matchId);
+    const p1=m?m.p1:'?', p2=m?m.p2:'?';
+    const pickOpts=`<option value="${p1}" ${b.pick===p1?'selected':''}>${p1}</option>
+      <option value="${p2}" ${b.pick===p2?'selected':''}>${p2}</option>`;
+    const resOpts=['won','lost','walkover','voided','null'].map(r=>
+      `<option value="${r}" ${String(b.result)===r?'selected':''}>${r==='null'?'pending':r}</option>`
+    ).join('');
+    const bettorOpts=allPlayerOpts.replace(
+      `value="${b.playerName}"`,`value="${b.playerName}" selected`);
+    const statusColor=b.result===null?'var(--gold)':b.result==='won'?'var(--green)':
+      b.result==='voided'||b.result==='walkover'?'var(--text-dim)':'var(--red)';
+    const adminStamp=b.adminNote
+      ? `<div style="font-size:11px;color:var(--text-dim);margin-top:4px">
+           📝 ${b.adminNote}${b.adminEditedAt?' · '+b.adminEditedAt.slice(0,10):''}</div>`
+      : '';
+    return `
+    <div style="background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);
+         padding:12px 14px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--gold);font-family:'Cinzel',serif">${b.matchId}</span>
+        <span style="font-size:11px;color:var(--text-dim)">${p1} vs ${p2}</span>
+        <span style="font-size:11px;color:${statusColor};background:rgba(0,0,0,.2);
+              padding:1px 7px;border-radius:3px;margin-left:auto">${b.result===null?'pending':b.result}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+        <div><label class="lbl" style="margin-bottom:3px">Bettor</label>
+          <select id="cb-bettor-${b.id}" style="font-size:12px;padding:4px 8px">${bettorOpts}</select>
+        </div>
+        <div><label class="lbl" style="margin-bottom:3px">Pick</label>
+          <select id="cb-pick-${b.id}" style="font-size:12px;padding:4px 8px">${pickOpts}</select>
+        </div>
+        <div><label class="lbl" style="margin-bottom:3px">Amount</label>
+          <input type="number" id="cb-amt-${b.id}" value="${b.amount}" min="1"
+            style="font-size:12px;padding:4px 8px" />
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div><label class="lbl" style="margin-bottom:3px">Result</label>
+          <select id="cb-res-${b.id}" style="font-size:12px;padding:4px 8px">${resOpts}</select>
+        </div>
+        <div><label class="lbl" style="margin-bottom:3px">Reason / note <span style="color:var(--red)">*required for edits</span></label>
+          <input type="text" id="cb-note-${b.id}" placeholder="e.g. Wrong pick entered by admin"
+            style="font-size:12px;padding:4px 8px" value="${b.adminNote||''}" />
+        </div>
+      </div>
+      ${adminStamp}
+      <div class="btn-row" style="margin-top:4px">
+        <button class="btn btn-sm btn-gold" onclick="saveBetEdit('${b.id}')">Save changes</button>
+        <button class="btn btn-sm btn-danger" onclick="voidBet('${b.id}')">Soft void</button>
+        <button class="btn btn-sm btn-danger" style="opacity:.6" onclick="hardDeleteBet('${b.id}')">Hard delete</button>
+      </div>
+      <div id="cb-msg-${b.id}" style="font-size:12px;margin-top:6px;display:none"></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('corr-bets-table').innerHTML=`
+    <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;
+         margin:4px 0 10px;padding-bottom:6px;border-bottom:0.5px solid var(--border)">
+      ${title} — ${sorted.length} bet(s)
+    </div>
+    ${rows}`;
+}
+
+async function saveBetEdit(betId){
+  const note=(document.getElementById('cb-note-'+betId)?.value||'').trim();
+  if(!note){
+    const msg=document.getElementById('cb-msg-'+betId);
+    if(msg){msg.style.display='block';msg.style.color='var(--red)';msg.textContent='Reason is required before saving.';}
+    return;
+  }
+  const newBettor=document.getElementById('cb-bettor-'+betId)?.value;
+  const newPick  =document.getElementById('cb-pick-'+betId)?.value;
+  const newAmt   =parseInt(document.getElementById('cb-amt-'+betId)?.value);
+  const newRes   =document.getElementById('cb-res-'+betId)?.value;
+  if(isNaN(newAmt)||newAmt<=0){
+    const msg=document.getElementById('cb-msg-'+betId);
+    if(msg){msg.style.display='block';msg.style.color='var(--red)';msg.textContent='Amount must be a positive number.';}
+    return;
+  }
+  const result=newRes==='null'?null:newRes;
+  await _fsUpd('bets',betId,{
+    playerName:newBettor, pick:newPick, amount:newAmt, result,
+    adminNote:note, adminEditedAt:new Date().toISOString()
+  });
+  const msg=document.getElementById('cb-msg-'+betId);
+  if(msg){msg.style.display='block';msg.style.color='var(--green)';msg.textContent='✓ Saved';}
+  // onSnapshot will refresh the full view; also inline-refresh the table
+  setTimeout(()=>loadCorrBets(_corrView),400);
+}
+
+async function voidBet(betId){
+  const note=(document.getElementById('cb-note-'+betId)?.value||'').trim();
+  if(!note){
+    const msg=document.getElementById('cb-msg-'+betId);
+    if(msg){msg.style.display='block';msg.style.color='var(--red)';msg.textContent='Add a reason before voiding.';}
+    return;
+  }
+  if(!confirm('Soft-void this bet? The record is kept but has no balance effect.'))return;
+  await _fsUpd('bets',betId,{
+    result:'voided', adminNote:note, adminEditedAt:new Date().toISOString()
+  });
+  setTimeout(()=>loadCorrBets(_corrView),400);
+}
+
+async function hardDeleteBet(betId){
+  const note=(document.getElementById('cb-note-'+betId)?.value||'').trim();
+  if(!note){
+    const msg=document.getElementById('cb-msg-'+betId);
+    if(msg){msg.style.display='block';msg.style.color='var(--red)';msg.textContent='Add a reason before deleting.';}
+    return;
+  }
+  if(!confirm('HARD DELETE this bet?\n\nThis permanently removes the record from Firestore and cannot be undone.\nConsider soft-void instead.'))return;
+  await _fsDel('bets',betId);
+  setTimeout(()=>loadCorrBets(_corrView),400);
+}
+
+async function deleteAdj(adjId){
+  if(!confirm('Delete this adjustment? This cannot be undone.'))return;
+  await _fsDel('adjustments', adjId);
+}
+
+// ── CONNECT INLINE HANDLERS TO GLOBAL SCOPE ──────
+Object.assign(globalThis, {
+  startLogin,
+  showLogin,
+  showAdminLogin,
+  showRegister,
+  loginAdmin,
+  logout,
+  playerTab,
+  adminTab,
+  closeModal,
+  toggleRound,
+  takeLoan,
+  openBetModal,
+  submitBet,
+  toggleBetting,
+  declareWinner,
+  declareWalkover,
+  deleteMatch,
+  openAddMatchModal,
+  editMatch,
+  submitAddMatch,
+  submitEditMatch,
+  changeStatus,
+  submitAddPlayer,
+  openAdjust,
+  submitAdjust,
+  toggleLR,
+  updateLRMax,
+  markRepaid,
+  parseAudience,
+  awardOne,
+  resetPin,
+  exportData,
+  importData,
+  clearAll,
+  renderACorrections,
+  setCorrView,
+  loadCorrBets,
+  saveBetEdit,
+  voidBet,
+  hardDeleteBet,
+  deleteAdj
+});
+
+// ── ONE-TIME CORRECTIONS ────────────────────
+// Each entry writes to Firestore exactly once (skips if doc already has the target value).
+// Safe to re-run on every boot.
+async function applyOneTimeCorrections(){
+  const corrections=[
+    // ── Bet integrity correction ──────────────────────────────────────────
+    // Void Mojo's M17 bet on OPM (1000 coins).
+    // Mojo is a competitor in M17 (OPM vs tsukiyue) and cannot bet on their opponent.
+    // Soft-void preserves the record; result='voided' has zero net effect on balance.
+    {collection:'bets', id:'b_m17_3', field:'result', value:'voided',
+     note:'Integrity correction: Mojo cannot bet on opponent OPM in M17'},
+
+    // ── Seed loan round-assignment corrections ────────────────────────────
+    // The original seed placed all loan principal as loanRound=1, but R1 cap=600.
+    // Any amount above 600 per player belonged in R2 (cap=1000).
+    // Correction: change loanRound from 1→2 for the overflow docs.
+    // Principal, amount, and repaid status are all unchanged. Debt totals unchanged.
+    {collection:'loans', id:'l_r1_0_1',  field:'loanRound', value:2, note:'Seed fix: AniNing 600c R1 overflow -> R2'},
+    {collection:'loans', id:'l_r1_1_1',  field:'loanRound', value:2, note:'Seed fix: Chion 600c R1 overflow -> R2'},
+    {collection:'loans', id:'l_r1_1_2',  field:'loanRound', value:2, note:'Seed fix: Chion 400c R1 overflow -> R2'},
+    {collection:'loans', id:'l_r1_2_1',  field:'loanRound', value:2, note:'Seed fix: Cozmo 600c R1 overflow -> R2'},
+    {collection:'loans', id:'l_r1_2_2',  field:'loanRound', value:2, note:'Seed fix: Cozmo 400c R1 overflow -> R2'},
+    {collection:'loans', id:'l_r1_3_1',  field:'loanRound', value:2, note:'Seed fix: Dumamay 600c R1 overflow -> R2'},
+    {collection:'loans', id:'l_r1_3_2',  field:'loanRound', value:2, note:'Seed fix: Dumamay 50c R1 overflow -> R2'},
+    {collection:'loans', id:'l_r1_6_1',  field:'loanRound', value:2, note:'Seed fix: Gunbae 600c R1 overflow -> R2'},
+    {collection:'loans', id:'l_r1_6_2',  field:'loanRound', value:2, note:'Seed fix: Gunbae 400c R1 overflow -> R2'},
+    {collection:'loans', id:'l_r1_8_1',  field:'loanRound', value:2, note:'Seed fix: HuaKui 200c R1 overflow -> R2'},
+    {collection:'loans', id:'l_r1_9_1',  field:'loanRound', value:2, note:'Seed fix: HuangJii 100c R1 overflow -> R2'},
+    {collection:'loans', id:'l_r1_10_1', field:'loanRound', value:2, note:'Seed fix: iLYa 70c R1 overflow -> R2'},
+    {collection:'loans', id:'l_r1_12_1', field:'loanRound', value:2, note:'Seed fix: Jjooo 600c R1 overflow -> R2'},
+    {collection:'loans', id:'l_r1_12_2', field:'loanRound', value:2, note:'Seed fix: Jjooo 400c R1 overflow -> R2'},
+    {collection:'loans', id:'l_r1_15_1', field:'loanRound', value:2, note:'Seed fix: Nishiora 600c R1 overflow -> R2'},
+    {collection:'loans', id:'l_r1_15_2', field:'loanRound', value:2, note:'Seed fix: Nishiora 400c R1 overflow -> R2'},
+    {collection:'loans', id:'l_r1_23_1', field:'loanRound', value:2, note:'Seed fix: Skylleria 600c R1 overflow -> R2'},
+    {collection:'loans', id:'l_r1_23_2', field:'loanRound', value:2, note:'Seed fix: Skylleria 400c R1 overflow -> R2'},
+    {collection:'loans', id:'l_r1_26_1', field:'loanRound', value:2, note:'Seed fix: xJunhaox 400c R1 overflow -> R2'},
+    {collection:'loans', id:'l_r1_27_1', field:'loanRound', value:2, note:'Seed fix: xZel 600c R1 overflow -> R2'},
+    {collection:'loans', id:'l_r1_27_2', field:'loanRound', value:2, note:'Seed fix: xZel 400c R1 overflow -> R2'},
+  ];
+  for(const c of corrections){
+    try{
+      const ref=doc(_db,c.collection,c.id);
+      const snap=await getDoc(ref);
+      if(!snap.exists()){console.log('Correction target not found:',c.id);continue;}
+      if(snap.data()[c.field]===c.value){console.log('Correction already applied:',c.id);continue;}
+      await updateDoc(ref,{[c.field]:c.value});
+      console.log('Applied correction:',c.id,'→',c.field,'=',c.value,'|',c.note);
+    } catch(e){console.error('Correction failed:',c.id,e);}
+  }
+}
+
+// ── BOOT ────────────────────────────────────
+async function boot(){
+  try{
+    await initDefault();
+    await applyOneTimeCorrections();
+    subscribeAll();
+    await new Promise(r=>setTimeout(r,900));
+    populateDropdown();
+    buildKeypad('pin-keypad',pinKey);
+    buildKeypad('reg-keypad',regKey);
+    document.getElementById('loading-screen').classList.add('hidden');
+    showScreen('login-screen');
+  } catch(e){
+    console.error(e);
+    const lm=document.getElementById('loading-msg');if(lm)lm.textContent='Error: '+e.message;
+  }
+}
+boot();
+</script>
+</body>
+</html>
