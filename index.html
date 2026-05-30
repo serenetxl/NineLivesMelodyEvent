@@ -1103,16 +1103,16 @@ function renderLiveBets(containerId){
       potHtml=`
         <div style="margin-bottom:10px">
           <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
-            <span style="color:var(--text);font-weight:500">${m.p1}</span>
-            <span style="color:var(--text);font-weight:500">${m.p2}</span>
+            <span style="color:var(--gold);font-weight:500">${m.p1}</span>
+            <span style="color:var(--blue);font-weight:500">${m.p2}</span>
           </div>
           <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--bg3)">
             <div style="width:${p1pct}%;background:var(--gold);transition:width .4s"></div>
             <div style="width:${p2pct}%;background:var(--blue);transition:width .4s"></div>
           </div>
-          <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:3px;color:var(--text-dim)">
-            <span>${fmt(p1pot)} CC (${p1pct}%)</span>
-            <span>${fmt(p2pot)} CC (${p2pct}%)</span>
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:3px">
+            <span style="color:var(--gold)">${fmt(p1pot)} CC (${p1pct}%)</span>
+            <span style="color:var(--blue)">${fmt(p2pot)} CC (${p2pct}%)</span>
           </div>
         </div>`;
     }
@@ -1130,6 +1130,11 @@ function renderLiveBets(containerId){
       betRows=sorted2.map(b=>{
         const isMe=norm(b.playerName)===norm(S.currentUser);
         let pickDisplay=b.pick;
+        // Determine side colour: p1 = gold, p2 = blue, ranked = gold
+        const isP1=norm(b.pick)===norm(m.p1);
+        const betColor=isRanked?'var(--gold)':isP1?'var(--gold)':'var(--blue)';
+        const betBg=isRanked?'rgba(201,168,76,.08)':isP1?'rgba(201,168,76,.08)':'rgba(74,127,192,.08)';
+        const betBorder=isRanked?'rgba(201,168,76,.25)':isP1?'rgba(201,168,76,.25)':'rgba(74,127,192,.25)';
         if(b.betType==='ranked'){
           const parts=(b.pick||'').split('|').map(part=>{
             const[pos,name]=part.split(':');
@@ -1139,20 +1144,20 @@ function renderLiveBets(containerId){
           pickDisplay=parts.join(' · ');
         }
         const resultTag=b.result===null
-          ?`<span style="font-size:10px;background:rgba(201,168,76,.15);color:var(--gold);border:0.5px solid rgba(201,168,76,.3);border-radius:3px;padding:1px 6px">PENDING</span>`
+          ?`<span style="font-size:10px;background:${betBg};color:${betColor};border:0.5px solid ${betBorder};border-radius:3px;padding:1px 6px">PENDING</span>`
           :b.result==='won'
           ?`<span style="font-size:10px;background:var(--green-bg);color:var(--green);border:0.5px solid rgba(74,156,110,.3);border-radius:3px;padding:1px 6px">WON +${fmt(b.betType==='ranked'?b.amount*6:b.amount*BET_MULT)}</span>`
           :b.result==='lost'
           ?`<span style="font-size:10px;background:var(--red-bg);color:var(--red);border:0.5px solid rgba(192,64,64,.3);border-radius:3px;padding:1px 6px">LOST</span>`
           :`<span style="font-size:10px;background:var(--bg3);color:var(--text-dim);border:0.5px solid var(--border);border-radius:3px;padding:1px 6px">${b.result?.toUpperCase()||'—'}</span>`;
-        return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:0.5px solid rgba(201,168,76,.06)">
-          <div class="avatar" style="${avStyle(b.playerName)};width:26px;height:26px;font-size:10px;flex-shrink:0">${initials(b.playerName)}</div>
+        return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0 7px 8px;border-bottom:0.5px solid rgba(201,168,76,.06);border-left:2px solid ${betColor};margin-left:-8px">
+          <div class="avatar" style="${avStyle(b.playerName)};width:26px;height:26px;font-size:10px;flex-shrink:0;border-color:${betColor}">${initials(b.playerName)}</div>
           <div style="flex:1;min-width:0">
             <span style="font-weight:${isMe?'600':'400'};font-size:13px">${b.playerName}${isMe?' <span style="font-size:10px;color:var(--text-dim)">(you)</span>':''}</span>
-            <div style="font-size:11px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${pickDisplay}</div>
+            <div style="font-size:11px;color:${betColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${pickDisplay}</div>
           </div>
           <div style="text-align:right;flex-shrink:0">
-            <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold)">${fmt(b.amount)} CC</div>
+            <div style="font-family:'Cinzel',serif;font-size:13px;color:${betColor}">${fmt(b.amount)} CC</div>
             <div style="margin-top:2px">${resultTag}</div>
           </div>
         </div>`;
