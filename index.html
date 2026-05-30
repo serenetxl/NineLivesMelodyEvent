@@ -74,12 +74,6 @@ th{text-align:left;padding:10px 14px;border-bottom:0.5px solid var(--border);fon
 td{padding:10px 14px;border-bottom:0.5px solid rgba(201,168,76,.07)}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:rgba(201,168,76,.03)}
-/* Collapsible round section */
-.round-header{display:flex;align-items:center;justify-content:space-between;padding:8px 0;cursor:pointer;user-select:none;margin:16px 0 8px;border-bottom:0.5px solid var(--border)}
-.round-header-label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em}
-.round-toggle{font-size:12px;color:var(--text-dim);padding:2px 8px;border:0.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg3)}
-.round-body{overflow:hidden;transition:max-height .3s ease}
-.round-body.collapsed{max-height:0!important}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px}
 .modal{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:24px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto}
 .modal-title{font-family:'Cinzel',serif;font-size:16px;color:var(--gold);margin-bottom:16px}
@@ -96,8 +90,10 @@ tr:hover td{background:rgba(201,168,76,.03)}
 .pin-key{padding:14px;border-radius:var(--radius-sm);font-size:18px;font-family:'Cinzel',serif;text-align:center;cursor:pointer;border:0.5px solid var(--border);background:var(--bg3);color:var(--text);transition:all .15s}
 .pin-key:hover{border-color:var(--border-h);background:var(--bg4)}
 .pin-key:active{transform:scale(.95)}
+.sec{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin:20px 0 8px;padding-bottom:6px;border-bottom:0.5px solid var(--border)}
 .audience-tag{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:0.5px solid var(--border);border-radius:20px;padding:4px 10px;font-size:12px;margin:3px}
-.audience-tag.present{border-color:rgba(74,156,110,.4);color:var(--green)}
+.sync-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--text-dim);margin-left:6px;vertical-align:middle}
+.sync-dot.live{background:var(--green)}.sync-dot.saving{background:var(--gold)}
 @media(max-width:520px){.stats-grid{grid-template-columns:1fr 1fr}.main{padding:14px 16px}}
 @media(min-width:768px){
   .match-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
@@ -106,21 +102,24 @@ tr:hover td{background:rgba(201,168,76,.03)}
   .modal{max-width:520px}
   .auth-card{padding:40px}
 }
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
+
+<!-- LOADING -->
 <div id="loading-screen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;background:#0D0F14">
   <div style="width:40px;height:40px;border:2px solid rgba(201,168,76,.18);border-top-color:#C9A84C;border-radius:50%;animation:spin .8s linear infinite"></div>
   <div style="font-family:'Cinzel',serif;color:#C9A84C;font-size:16px">Nine Lives</div>
-  <div id="loading-msg" style="color:#8A8070;font-size:13px">Connecting to Firebase...</div>
+  <div id="loading-msg" style="color:#8A8070;font-size:13px">Connecting...</div>
 </div>
 
 <!-- LOGIN -->
-<div id="login-screen" class="auth-wrap">
+<div id="login-screen" class="auth-wrap hidden">
   <div class="auth-card">
     <div class="auth-icon">🎵</div>
     <div class="auth-title">Nine Lives</div>
-    <div class="auth-sub">Melody Event &nbsp;✦&nbsp; Cat Coin Exchange</div>
+    <div class="auth-sub">Melody Event &nbsp;✦&nbsp; Semifinals</div>
     <div class="fg"><label class="lbl">Your guild name</label>
       <select id="login-name-select"><option value="">— Select your name —</option></select></div>
     <div id="login-error" class="alert alert-danger hidden"></div>
@@ -198,7 +197,7 @@ tr:hover td{background:rgba(201,168,76,.03)}
       <button class="tab active" onclick="playerTab(this,'p-matches')">Matches</button>
       <button class="tab" onclick="playerTab(this,'p-leaderboard')">Leaderboard</button>
       <button class="tab" onclick="playerTab(this,'p-mybets')">My Bets</button>
-      <button class="tab" onclick="playerTab(this,'p-bank')">Cat Bank</button>
+      <button class="tab" onclick="playerTab(this,'p-bank')">🏦 Cat Bank</button>
     </div>
     <div id="p-matches"></div>
     <div id="p-leaderboard" class="hidden"></div>
@@ -211,8 +210,8 @@ tr:hover td{background:rgba(201,168,76,.03)}
 <div id="admin-screen" class="hidden" style="min-height:100vh;display:flex;flex-direction:column">
   <div class="header">
     <div>
-      <div class="header-title">Admin Panel ✦ Nine Lives</div>
-      <div class="header-sub">Where Winds Meet</div>
+      <div class="header-title">Admin Panel ✦ Nine Lives <span class="sync-dot" id="sync-dot-a"></span></div>
+      <div class="header-sub">Semifinals Control</div>
     </div>
     <button class="btn btn-sm" onclick="logout()">Log out</button>
   </div>
@@ -220,15 +219,13 @@ tr:hover td{background:rgba(201,168,76,.03)}
     <div class="tab-bar">
       <button class="tab active" onclick="adminTab(this,'a-matches')">Matches</button>
       <button class="tab" onclick="adminTab(this,'a-players')">Players</button>
-      <button class="tab" onclick="adminTab(this,'a-bank')">Cat Bank</button>
-      <button class="tab" onclick="adminTab(this,'a-audience')">Audience</button>
+      <button class="tab" onclick="adminTab(this,'a-bank')">Economy</button>
       <button class="tab" onclick="adminTab(this,'a-corrections')">Corrections</button>
       <button class="tab" onclick="adminTab(this,'a-settings')">Settings</button>
     </div>
     <div id="a-matches"></div>
     <div id="a-players" class="hidden"></div>
     <div id="a-bank" class="hidden"></div>
-    <div id="a-audience" class="hidden"></div>
     <div id="a-corrections" class="hidden"></div>
     <div id="a-settings" class="hidden"></div>
   </div>
@@ -248,8 +245,8 @@ tr:hover td{background:rgba(201,168,76,.03)}
     <div class="fg"><label class="lbl">Status</label>
       <select id="new-player-status">
         <option value="active">Active (competing)</option>
-        <option value="eliminated">Eliminated</option>
         <option value="spectator">Spectator</option>
+        <option value="eliminated">Eliminated</option>
       </select></div>
     <div id="add-player-error" class="alert alert-danger hidden"></div>
     <div class="btn-row" style="margin-top:4px">
@@ -258,14 +255,13 @@ tr:hover td{background:rgba(201,168,76,.03)}
     </div>
   </div>
 </div>
-<div id="adjust-modal" class="modal-overlay hidden">
-  <div class="modal"><div class="modal-title">Adjust Balance</div><div id="adjust-content"></div></div>
+<div id="edit-balance-modal" class="modal-overlay hidden">
+  <div class="modal"><div class="modal-title">Edit Balance</div><div id="edit-balance-content"></div></div>
 </div>
 
 <script type="module">
-// Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const _app = initializeApp({
   apiKey:"AIzaSyB27Beqxzc3LSbNTBLDOo82nEpTfwS7Cko",
@@ -277,380 +273,190 @@ const _app = initializeApp({
 });
 const _db = getFirestore(_app);
 
-const ADMIN_PW="catwins2024";
-const BET_MULT=2,START_COINS=200;
+const ADMIN_PW = "catwins2024";
+const BET_MULT = 2;
 
-const _col={
-  players:()=>collection(_db,'players'),
-  matches:()=>collection(_db,'matches'),
-  bets:()=>collection(_db,'bets'),
-  loans:()=>collection(_db,'loans'),
-  adjustments:()=>collection(_db,'adjustments'),
+// ── LOAN CAP CONFIG ────────────────────────
+// To raise the loan cap for future rounds, just increase MAX_DEBT.
+// No round tracking, no historical loan records — just a single ceiling.
+const MAX_DEBT = 1600; // R1 cap 600 + R2 cap 1000. Raise for semis/finals if needed.
+
+const _col = {
+  players: ()=>collection(_db,'players'),
+  matches:  ()=>collection(_db,'matches'),
+  bets:     ()=>collection(_db,'bets'),
 };
-const _cfgDoc=()=>doc(_db,'config','main');
+const _cfgDoc = ()=>doc(_db,'config','main');
 
-let isAdmin=false;
-let S={players:[],matches:[],bets:[],loans:[],adjustments:[],
-  loanRounds:[
-    {round:1,label:'Round 1 (24→12)',maxLoan:600,open:false},
-    {round:2,label:'Round 2 (12→6)',maxLoan:1000,open:true},
-    {round:3,label:'Round 3 (6→3)',maxLoan:0,open:false},
-    {round:4,label:'Final (Round Robin)',maxLoan:0,open:false}
-  ],
-  currentRound:2,pins:{},collapsedRounds:{'Round 1 (24→12)':true}
+// ── STATE ──────────────────────────────────
+// Player shape: { id, name, available, debt, netWorth, status, pin? }
+// available  = coins spendable right now (before pending bets deducted)
+// debt       = total current debt owed (interest already included in netWorth calc)
+// netWorth   = available − debt  (source of truth for leaderboard)
+// pending    = computed live from unresolved bets (NOT stored)
+let S = {
+  players: [],
+  matches: [],
+  bets: [],
+  loanOpen: false,
+  debtCapHistory: [],
+  pins: {},
+  currentUser: null,
 };
-let _unsubs=[],_curPTab='p-matches',_curATab='a-matches';
+let isAdmin = false;
+let _unsubs = [], _curPTab = 'p-matches', _curATab = 'a-matches';
 
-function _setSyncDot(st){['sync-dot-p','sync-dot-a'].forEach(id=>{const el=document.getElementById(id);if(el){el.className='sync-dot'+(st==='live'?' live':st==='saving'?' saving':'');}});}
+// ── FIREBASE HELPERS ──────────────────────
+function _setSyncDot(st){
+  ['sync-dot-p','sync-dot-a'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.className='sync-dot'+(st==='live'?' live':st==='saving'?' saving':'');
+  });
+}
 async function _fsSet(c,id,d){_setSyncDot('saving');await setDoc(doc(_db,c,id),d);_setSyncDot('live');}
 async function _fsUpd(c,id,d){_setSyncDot('saving');await updateDoc(doc(_db,c,id),d);_setSyncDot('live');}
 async function _fsDel(c,id){_setSyncDot('saving');await deleteDoc(doc(_db,c,id));_setSyncDot('live');}
 async function _fsCfg(d){_setSyncDot('saving');await updateDoc(_cfgDoc(),d);_setSyncDot('live');}
 
-function save(){}
-function load(){}
+// ── BALANCE HELPERS ────────────────────────
+// These are the ONLY balance functions. No reconstruction from history.
 
-async function initDefault(){
-  // Check if already seeded
-  const snap = await getDocs(_col.players());
-  if(!snap.empty){ console.log('Already seeded'); return; }
-  console.log('Seeding Firestore...');
-  const SEED_P=[
-    ["Alrenq","spectator"],["Angel (LilMilotic)","spectator"],["AniNing","spectator"],
-    ["AutisticPickle","spectator"],["Cai","spectator"],["Chion","active"],
-    ["Cozmo","active"],["deeepeee3","eliminated"],["Dumamay","spectator"],
-    ["Feilong","spectator"],["FortunaKirana","spectator"],["Gaia","spectator"],
-    ["Gunbae","spectator"],["HaaanZ","eliminated"],["Hel","spectator"],
-    ["HotBBQGrill","eliminated"],["HuaKui","eliminated"],["HuangJii","active"],
-    ["iLYa","active"],["Jade-Rooster","spectator"],["Jahbs","active"],
-    ["Jia Ying","eliminated"],["Jjooo","spectator"],["Jyun","spectator"],
-    ["Lviv","spectator"],["Mici","eliminated"],["Mojo","active"],
-    ["Nishiora","spectator"],["Nshki","spectator"],["Ogeypeko","spectator"],
-    ["OishiEdo","spectator"],["OPM","active"],["Petter","spectator"],
-    ["plop","spectator"],["Python","spectator"],["Reito","active"],
-    ["RoO","spectator"],["Sanhua","active"],["Seraliea","spectator"],
-    ["Serene","spectator"],["SirShadow","active"],["Skylleria","spectator"],
-    ["Snorkie","spectator"],["TK","spectator"],["Togez","spectator"],
-    ["tsukiyue","active"],["Tsurea","spectator"],["Villya","eliminated"],
-    ["Vorpalpledge","spectator"],["XE","spectator"],["xJunhaox","spectator"],
-    ["XNeaR","eliminated"],["xZel","spectator"],["YangKai","spectator"],
-    ["Yumad","spectator"],["Zia","eliminated"]
-  ];
-  const b1=writeBatch(_db);
-  SEED_P.forEach(([name,status],i)=>b1.set(doc(_db,'players','p'+i),{name,status}));
-  await b1.commit();
-
-  const SEED_M=[
-    {id:'M1',round:1,roundLabel:'Round 1 (24→12)',p1:'Reito',p2:'Alrenq',status:'done',winner:'Reito',bettingOpen:false,day:'WED',time:'After party'},
-    {id:'M2',round:1,roundLabel:'Round 1 (24→12)',p1:'deeepeee3',p2:'HuangJii',status:'done',winner:'HuangJii',bettingOpen:false,day:'WED',time:'After party'},
-    {id:'M3',round:1,roundLabel:'Round 1 (24→12)',p1:'Jia Ying',p2:'Cozmo',status:'done',winner:'Jia Ying',bettingOpen:false,day:'TUES',time:'During party'},
-    {id:'M4',round:1,roundLabel:'Round 1 (24→12)',p1:'Chion',p2:'XNeaR',status:'done',winner:'Chion',bettingOpen:false,day:'WED',time:'20:00'},
-    {id:'M5',round:1,roundLabel:'Round 1 (24→12)',p1:'tipsyneko',p2:'Mojo',status:'done',winner:'Mojo',bettingOpen:false,day:'TUES',time:'21:00'},
-    {id:'M6',round:1,roundLabel:'Round 1 (24→12)',p1:'Zia',p2:'Mici',status:'done',winner:'Zia',bettingOpen:false,day:'TUES',time:'After party'},
-    {id:'M7',round:1,roundLabel:'Round 1 (24→12)',p1:'iLYa',p2:'HotBBQGrill',status:'done',winner:'iLYa',bettingOpen:false,day:'TUES',time:'Before party'},
-    {id:'M8',round:1,roundLabel:'Round 1 (24→12)',p1:'SirShadow',p2:'Villya',status:'done',winner:'SirShadow',bettingOpen:false,day:'WED',time:'After party'},
-    {id:'M9',round:1,roundLabel:'Round 1 (24→12)',p1:'OPM',p2:'HaaanZ',status:'done',winner:'OPM',bettingOpen:false,day:'WED',time:'After party'},
-    {id:'M10',round:1,roundLabel:'Round 1 (24→12)',p1:'tsukiyue',p2:'HuaKui',status:'done',winner:'tsukiyue',bettingOpen:false,day:'TUES',time:'After party'},
-    {id:'M11',round:1,roundLabel:'Round 1 (24→12)',p1:'Vorpalpledge',p2:'Sanhua',status:'done',winner:'Sanhua',bettingOpen:false,day:'TUES',time:'After party'},
-    {id:'M12',round:1,roundLabel:'Round 1 (24→12)',p1:'Jahbs',p2:'xZel',status:'done',winner:'Jahbs',bettingOpen:false,day:'TUES',time:'During party'},
-    {id:'M13',round:2,roundLabel:'Round 2 (12→6)',p1:'Reito',p2:'HuangJii',status:'pending',winner:null,bettingOpen:true,day:'Today',time:''},
-    {id:'M14',round:2,roundLabel:'Round 2 (12→6)',p1:'Jia Ying',p2:'Chion',status:'done',winner:'Chion',bettingOpen:false,day:'',time:''},
-    {id:'M15',round:2,roundLabel:'Round 2 (12→6)',p1:'Mojo',p2:'Zia',status:'done',winner:'Mojo',bettingOpen:false,day:'',time:''},
-    {id:'M16',round:2,roundLabel:'Round 2 (12→6)',p1:'iLYa',p2:'SirShadow',status:'pending',winner:null,bettingOpen:true,day:'Today',time:''},
-    {id:'M17',round:2,roundLabel:'Round 2 (12→6)',p1:'OPM',p2:'tsukiyue',status:'pending',winner:null,bettingOpen:true,day:'Today',time:''},
-    {id:'M18',round:2,roundLabel:'Round 2 (12→6)',p1:'Sanhua',p2:'Jahbs',status:'pending',winner:null,bettingOpen:true,day:'Today',time:''},
-    {id:'M19',round:3,roundLabel:'Round 3 (6→3)',p1:'TBD',p2:'TBD',status:'pending',winner:null,bettingOpen:false,day:'',time:''},
-    {id:'M20',round:3,roundLabel:'Round 3 (6→3)',p1:'TBD',p2:'TBD',status:'pending',winner:null,bettingOpen:false,day:'',time:''},
-  ];
-  const b2=writeBatch(_db);
-  SEED_M.forEach(m=>b2.set(doc(_db,'matches',m.id),m));
-  await b2.commit();
-
-  const SEED_B=[
-    {id:'b_m1_2',matchId:'M1',playerName:'Chion',pick:'Alrenq',amount:100,result:'lost'},
-    {id:'b_m1_4',matchId:'M1',playerName:'Cozmo',pick:'Reito',amount:20,result:'won'},
-    {id:'b_m1_5',matchId:'M1',playerName:'Feilong',pick:'Reito',amount:500,result:'won'},
-    {id:'b_m1_6',matchId:'M1',playerName:'Gaia',pick:'Alrenq',amount:50,result:'lost'},
-    {id:'b_m1_7',matchId:'M1',playerName:'Gunbae',pick:'Alrenq',amount:200,result:'lost'},
-    {id:'b_m1_8',matchId:'M1',playerName:'HuangJii',pick:'Reito',amount:200,result:'won'},
-    {id:'b_m1_9',matchId:'M1',playerName:'iLYa',pick:'Alrenq',amount:500,result:'lost'},
-    {id:'b_m1_10',matchId:'M1',playerName:'Mojo',pick:'Reito',amount:500,result:'won'},
-    {id:'b_m1_11',matchId:'M1',playerName:'Ogeypeko',pick:'Alrenq',amount:200,result:'lost'},
-    {id:'b_m1_12',matchId:'M1',playerName:'Ogeypeko',pick:'Reito',amount:100,result:'won'},
-    {id:'b_m1_14',matchId:'M1',playerName:'RoO',pick:'Alrenq',amount:1000,result:'lost'},
-    {id:'b_m2_1',matchId:'M2',playerName:'Chion',pick:'HuangJii',amount:300,result:'won'},
-    {id:'b_m2_2',matchId:'M2',playerName:'Feilong',pick:'deeepeee3',amount:300,result:'lost'},
-    {id:'b_m2_3',matchId:'M2',playerName:'FortunaKirana',pick:'HuangJii',amount:100,result:'won'},
-    {id:'b_m2_4',matchId:'M2',playerName:'Gaia',pick:'HuangJii',amount:100,result:'won'},
-    {id:'b_m2_5',matchId:'M2',playerName:'Gunbae',pick:'HuangJii',amount:250,result:'won'},
-    {id:'b_m2_6',matchId:'M2',playerName:'HuaKui',pick:'HuangJii',amount:500,result:'won'},
-    {id:'b_m2_7',matchId:'M2',playerName:'HuangJii',pick:'HuangJii',amount:800,result:'won'},
-    {id:'b_m2_8',matchId:'M2',playerName:'iLYa',pick:'deeepeee3',amount:100,result:'lost'},
-    {id:'b_m2_9',matchId:'M2',playerName:'iLYa',pick:'HuangJii',amount:1680,result:'won'},
-    {id:'b_m2_10',matchId:'M2',playerName:'Jia Ying',pick:'HuangJii',amount:200,result:'won'},
-    {id:'b_m2_11',matchId:'M2',playerName:'Jyun',pick:'HuangJii',amount:200,result:'won'},
-    {id:'b_m2_12',matchId:'M2',playerName:'Mojo',pick:'HuangJii',amount:2650,result:'won'},
-    {id:'b_m2_13',matchId:'M2',playerName:'Ogeypeko',pick:'HuangJii',amount:800,result:'won'},
-    {id:'b_m2_14',matchId:'M2',playerName:'RoO',pick:'HuangJii',amount:1000,result:'won'},
-    {id:'b_m2_15',matchId:'M2',playerName:'Seraliea',pick:'HuangJii',amount:200,result:'won'},
-    {id:'b_m2_16',matchId:'M2',playerName:'Serene',pick:'HuangJii',amount:1350,result:'won'},
-    {id:'b_m2_17',matchId:'M2',playerName:'Skylleria',pick:'HuangJii',amount:1800,result:'won'},
-    {id:'b_m3_1',matchId:'M3',playerName:'Gunbae',pick:'Jia Ying',amount:200,result:'won'},
-    {id:'b_m3_2',matchId:'M3',playerName:'HotBBQGrill',pick:'Cozmo',amount:100,result:'lost'},
-    {id:'b_m3_3',matchId:'M3',playerName:'Gaia',pick:'Jia Ying',amount:50,result:'won'},
-    {id:'b_m4_1',matchId:'M4',playerName:'Chion',pick:'Chion',amount:1400,result:'won'},
-    {id:'b_m4_2',matchId:'M4',playerName:'Feilong',pick:'xNear',amount:300,result:'lost'},
-    {id:'b_m4_3',matchId:'M4',playerName:'FortunaKirana',pick:'Chion',amount:100,result:'won'},
-    {id:'b_m4_4',matchId:'M4',playerName:'Gaia',pick:'xNear',amount:50,result:'lost'},
-    {id:'b_m4_5',matchId:'M4',playerName:'Gunbae',pick:'Chion',amount:100,result:'won'},
-    {id:'b_m4_6',matchId:'M4',playerName:'HuaKui',pick:'Chion',amount:1000,result:'won'},
-    {id:'b_m4_7',matchId:'M4',playerName:'HuangJii',pick:'Chion',amount:200,result:'won'},
-    {id:'b_m4_8',matchId:'M4',playerName:'iLYa',pick:'Chion',amount:1000,result:'won'},
-    {id:'b_m4_9',matchId:'M4',playerName:'Jyun',pick:'Chion',amount:200,result:'won'},
-    {id:'b_m4_10',matchId:'M4',playerName:'Mojo',pick:'xNear',amount:500,result:'lost'},
-    {id:'b_m4_11',matchId:'M4',playerName:'Ogeypeko',pick:'Chion',amount:400,result:'won'},
-    {id:'b_m4_12',matchId:'M4',playerName:'RoO',pick:'Chion',amount:2880,result:'won'},
-    {id:'b_m4_13',matchId:'M4',playerName:'Skylleria',pick:'xNear',amount:3200,result:'lost'},
-    {id:'b_m4_14',matchId:'M4',playerName:'Zia',pick:'Chion',amount:200,result:'won'},
-    {id:'b_m5_1',matchId:'M5',playerName:'Cozmo',pick:'Tipsyneko',amount:100,result:'lost'},
-    {id:'b_m5_2',matchId:'M5',playerName:'Cozmo',pick:'Mojo',amount:400,result:'won'},
-    {id:'b_m5_3',matchId:'M5',playerName:'Dumamay',pick:'Tipsyneko',amount:800,result:'lost'},
-    {id:'b_m5_4',matchId:'M5',playerName:'Feilong',pick:'Mojo',amount:800,result:'won'},
-    {id:'b_m5_5',matchId:'M5',playerName:'Gunbae',pick:'Mojo',amount:600,result:'won'},
-    {id:'b_m5_6',matchId:'M5',playerName:'Hel',pick:'Tipsyneko',amount:200,result:'lost'},
-    {id:'b_m5_7',matchId:'M5',playerName:'iLYa',pick:'Mojo',amount:700,result:'won'},
-    {id:'b_m5_8',matchId:'M5',playerName:'Mojo',pick:'Mojo',amount:800,result:'won'},
-    {id:'b_m5_9',matchId:'M5',playerName:'Nishiora',pick:'Mojo',amount:800,result:'won'},
-    {id:'b_m5_10',matchId:'M5',playerName:'Ogeypeko',pick:'Mojo',amount:200,result:'won'},
-    {id:'b_m5_11',matchId:'M5',playerName:'OPM',pick:'tipsyneko',amount:800,result:'lost'},
-    {id:'b_m5_12',matchId:'M5',playerName:'Petter',pick:'Mojo',amount:800,result:'won'},
-    {id:'b_m5_13',matchId:'M5',playerName:'plop',pick:'Tipsyneko',amount:100,result:'lost'},
-    {id:'b_m5_14',matchId:'M5',playerName:'Python',pick:'Tipsyneko',amount:50,result:'lost'},
-    {id:'b_m5_15',matchId:'M5',playerName:'RoO',pick:'Mojo',amount:800,result:'won'},
-    {id:'b_m5_16',matchId:'M5',playerName:'Seraliea',pick:'Tipsyneko',amount:200,result:'lost'},
-    {id:'b_m5_17',matchId:'M5',playerName:'Seraliea',pick:'Mojo',amount:100,result:'won'},
-    {id:'b_m5_18',matchId:'M5',playerName:'Serene',pick:'Mojo',amount:200,result:'won'},
-    {id:'b_m5_19',matchId:'M5',playerName:'Skylleria',pick:'Mojo',amount:400,result:'won'},
-    {id:'b_m5_20',matchId:'M5',playerName:'Tipsyneko',pick:'Tipsyneko',amount:200,result:'lost'},
-    {id:'b_m5_21',matchId:'M5',playerName:'Tsurea',pick:'Tipsyneko',amount:700,result:'lost'},
-    {id:'b_m5_22',matchId:'M5',playerName:'Vorpalpledge',pick:'Mojo',amount:200,result:'won'},
-    {id:'b_m5_23',matchId:'M5',playerName:'xJunhaox',pick:'tipsyneko',amount:200,result:'lost'},
-    {id:'b_m5_24',matchId:'M5',playerName:'xZel',pick:'tipsyneko',amount:800,result:'lost'},
-    {id:'b_m5_25',matchId:'M5',playerName:'Gaia',pick:'Mojo',amount:50,result:'won'},
-    {id:'b_m6_1',matchId:'M6',playerName:'Gaia',pick:'Zia',amount:50,result:'won'},
-    {id:'b_m6_2',matchId:'M6',playerName:'Gunbae',pick:'Zia',amount:400,result:'won'},
-    {id:'b_m6_3',matchId:'M6',playerName:'HotBBQGrill',pick:'Zia',amount:100,result:'won'},
-    {id:'b_m6_4',matchId:'M6',playerName:'Jyun',pick:'Zia',amount:100,result:'won'},
-    {id:'b_m6_5',matchId:'M6',playerName:'Ogeypeko',pick:'Zia',amount:500,result:'won'},
-    {id:'b_m6_6',matchId:'M6',playerName:'Python',pick:'mici',amount:50,result:'lost'},
-    {id:'b_m7_1',matchId:'M7',playerName:'cozmo',pick:'HotBBQGrill',amount:100,result:'lost'},
-    {id:'b_m7_2',matchId:'M7',playerName:'Gaia',pick:'HotBBQGrill',amount:50,result:'lost'},
-    {id:'b_m7_3',matchId:'M7',playerName:'HotBBQGrill',pick:'iLYa',amount:100,result:'won'},
-    {id:'b_m8_1',matchId:'M8',playerName:'Chion',pick:'SirShadow',amount:900,result:'won'},
-    {id:'b_m8_2',matchId:'M8',playerName:'Chion',pick:'Villya',amount:900,result:'lost'},
-    {id:'b_m8_3',matchId:'M8',playerName:'Feilong',pick:'Villya',amount:1000,result:'lost'},
-    {id:'b_m8_4',matchId:'M8',playerName:'FortunaKirana',pick:'Villya',amount:200,result:'lost'},
-    {id:'b_m8_5',matchId:'M8',playerName:'FortunaKirana',pick:'SirShadow',amount:100,result:'won'},
-    {id:'b_m8_6',matchId:'M8',playerName:'HuaKui',pick:'Villya',amount:2500,result:'lost'},
-    {id:'b_m8_7',matchId:'M8',playerName:'HuangJii',pick:'Villya',amount:2500,result:'lost'},
-    {id:'b_m8_8',matchId:'M8',playerName:'iLYa',pick:'Villya',amount:2000,result:'lost'},
-    {id:'b_m8_9',matchId:'M8',playerName:'Jjooo',pick:'SirShadow',amount:350,result:'won'},
-    {id:'b_m8_10',matchId:'M8',playerName:'Jyun',pick:'SirShadow',amount:500,result:'won'},
-    {id:'b_m8_11',matchId:'M8',playerName:'Jyun',pick:'Villya',amount:500,result:'lost'},
-    {id:'b_m8_12',matchId:'M8',playerName:'Mici',pick:'SirShadow',amount:500,result:'won'},
-    {id:'b_m8_13',matchId:'M8',playerName:'Mojo',pick:'SirShadow',amount:3000,result:'won'},
-    {id:'b_m8_14',matchId:'M8',playerName:'Ogeypeko',pick:'SirShadow',amount:500,result:'won'},
-    {id:'b_m8_15',matchId:'M8',playerName:'Ogeypeko',pick:'Villya',amount:2000,result:'lost'},
-    {id:'b_m8_16',matchId:'M8',playerName:'Petter',pick:'Villya',amount:3680,result:'lost'},
-    {id:'b_m8_17',matchId:'M8',playerName:'RoO',pick:'SirShadow',amount:3932,result:'won'},
-    {id:'b_m8_18',matchId:'M8',playerName:'Seraliea',pick:'Villya',amount:1500,result:'lost'},
-    {id:'b_m9_1',matchId:'M9',playerName:'Chion',pick:'OPM',amount:700,result:'won'},
-    {id:'b_m9_2',matchId:'M9',playerName:'Cozmo',pick:'Haanz',amount:40,result:'lost'},
-    {id:'b_m9_3',matchId:'M9',playerName:'Cozmo',pick:'OPM',amount:100,result:'won'},
-    {id:'b_m9_4',matchId:'M9',playerName:'Cozmo',pick:'OPM',amount:800,result:'won'},
-    {id:'b_m9_5',matchId:'M9',playerName:'Feilong',pick:'OPM',amount:500,result:'won'},
-    {id:'b_m9_6',matchId:'M9',playerName:'FortunaKirana',pick:'OPM',amount:100,result:'won'},
-    {id:'b_m9_7',matchId:'M9',playerName:'Gaia',pick:'OPM',amount:100,result:'won'},
-    {id:'b_m9_8',matchId:'M9',playerName:'Gunbae',pick:'OPM',amount:200,result:'won'},
-    {id:'b_m9_9',matchId:'M9',playerName:'HuaKui',pick:'OPM',amount:1000,result:'won'},
-    {id:'b_m9_10',matchId:'M9',playerName:'HuangJii',pick:'OPM',amount:200,result:'won'},
-    {id:'b_m9_11',matchId:'M9',playerName:'HuangJii',pick:'OPM',amount:1000,result:'won'},
-    {id:'b_m9_12',matchId:'M9',playerName:'iLYa',pick:'Haanz',amount:1000,result:'lost'},
-    {id:'b_m9_13',matchId:'M9',playerName:'Jia Ying',pick:'OPM',amount:500,result:'won'},
-    {id:'b_m9_14',matchId:'M9',playerName:'Jia Ying',pick:'OPM',amount:700,result:'won'},
-    {id:'b_m9_15',matchId:'M9',playerName:'Jyun',pick:'OPM',amount:200,result:'won'},
-    {id:'b_m9_16',matchId:'M9',playerName:'Mojo',pick:'OPM',amount:3000,result:'won'},
-    {id:'b_m9_17',matchId:'M9',playerName:'Ogeypeko',pick:'OPM',amount:800,result:'won'},
-    {id:'b_m9_18',matchId:'M9',playerName:'Petter',pick:'OPM',amount:1880,result:'won'},
-    {id:'b_m9_19',matchId:'M9',playerName:'plop',pick:'OPM',amount:100,result:'won'},
-    {id:'b_m9_20',matchId:'M9',playerName:'RoO',pick:'OPM',amount:2,result:'won'},
-    {id:'b_m9_21',matchId:'M9',playerName:'RoO',pick:'Haanz',amount:1000,result:'lost'},
-    {id:'b_m9_22',matchId:'M9',playerName:'Seraliea',pick:'OPM',amount:400,result:'won'},
-    {id:'b_m9_23',matchId:'M9',playerName:'Seraliea',pick:'OPM',amount:1000,result:'won'},
-    {id:'b_m9_24',matchId:'M9',playerName:'Snorkie',pick:'OPM',amount:1830,result:'won'},
-    {id:'b_m9_25',matchId:'M9',playerName:'Tsurea',pick:'OPM',amount:150,result:'won'},
-    {id:'b_m10_1',matchId:'M10',playerName:'Chion',pick:'tsukiyue',amount:800,result:'won'},
-    {id:'b_m10_2',matchId:'M10',playerName:'Gaia',pick:'HuaKui',amount:50,result:'lost'},
-    {id:'b_m11_1',matchId:'M11',playerName:'Gaia',pick:'Sanhua',amount:50,result:'won'},
-    {id:'b_m11_2',matchId:'M11',playerName:'Jyun',pick:'Sanhua',amount:100,result:'won'},
-    {id:'b_m11_3',matchId:'M11',playerName:'Ogeypeko',pick:'Vorpalpledge',amount:100,result:'lost'},
-    {id:'b_m11_4',matchId:'M11',playerName:'Python',pick:'Sanhua',amount:50,result:'won'},
-    {id:'b_m11_5',matchId:'M11',playerName:'Sanhua',pick:'Vorpalpledge',amount:200,result:'lost'},
-    {id:'b_m12_1',matchId:'M12',playerName:'Gaia',pick:'Jahbs',amount:100,result:'won'},
-    {id:'b_m12_2',matchId:'M12',playerName:'Gunbae',pick:'xZel',amount:600,result:'lost'},
-    {id:'b_m12_3',matchId:'M12',playerName:'HotBBQGrill',pick:'Jahbs',amount:100,result:'won'},
-    {id:'b_m12_4',matchId:'M12',playerName:'Jahbs',pick:'Jahbs',amount:800,result:'won'},
-    {id:'b_m12_5',matchId:'M12',playerName:'plop',pick:'xZel',amount:100,result:'lost'},
-    {id:'b_m12_6',matchId:'M12',playerName:'Seraliea',pick:'xZel',amount:100,result:'lost'},
-    {id:'b_m12_7',matchId:'M12',playerName:'Snorkie',pick:'Jahbs',amount:800,result:'won'},
-    {id:'b_m12_8',matchId:'M12',playerName:'Tsurea',pick:'xZel',amount:100,result:'lost'},
-    {id:'b_m13_1',matchId:'M13',playerName:'Chion',pick:'HuangJii',amount:1000,result:null},
-    {id:'b_m13_2',matchId:'M13',playerName:'Cozmo',pick:'Reito',amount:400,result:null},
-    {id:'b_m13_3',matchId:'M13',playerName:'HuangJii',pick:'HuangJii',amount:1000,result:null},
-    {id:'b_m13_4',matchId:'M13',playerName:'Mojo',pick:'HuangJii',amount:2500,result:null},
-    {id:'b_m14_1',matchId:'M14',playerName:'Chion',pick:'Chion',amount:680,result:'won'},
-    {id:'b_m14_2',matchId:'M14',playerName:'cozmo',pick:'Jia Ying',amount:200,result:'lost'},
-    {id:'b_m14_3',matchId:'M14',playerName:'Feilong',pick:'Chion',amount:500,result:'won'},
-    {id:'b_m14_4',matchId:'M14',playerName:'FortunaKirana',pick:'Chion',amount:100,result:'won'},
-    {id:'b_m14_5',matchId:'M14',playerName:'FortunaKirana',pick:'Chion',amount:100,result:'won'},
-    {id:'b_m14_6',matchId:'M14',playerName:'Jyun',pick:'Chion',amount:500,result:'won'},
-    {id:'b_m14_7',matchId:'M14',playerName:'Mojo',pick:'Chion',amount:1000,result:'won'},
-    {id:'b_m14_8',matchId:'M14',playerName:'RoO',pick:'Chion',amount:5000,result:'won'},
-    {id:'b_m14_9',matchId:'M14',playerName:'iLYa',pick:'Chion',amount:1000,result:'won'},
-    {id:'b_m14_10',matchId:'M14',playerName:'iLYa',pick:'Chion',amount:1000,result:'won'},
-    {id:'b_m14_11',matchId:'M14',playerName:'Gaia',pick:'Jia Ying',amount:200,result:'lost'},
-    {id:'b_m14_12',matchId:'M14',playerName:'Seraliea',pick:'Chion',amount:100,result:'won'},
-    {id:'b_m15_1',matchId:'M15',playerName:'AniNing',pick:'Mojo',amount:1300,result:'won'},
-    {id:'b_m15_2',matchId:'M15',playerName:'Chion',pick:'Mojo',amount:1000,result:'won'},
-    {id:'b_m15_3',matchId:'M15',playerName:'Cozmo',pick:'Mojo',amount:1000,result:'won'},
-    {id:'b_m15_4',matchId:'M15',playerName:'Dumamay',pick:'Mojo',amount:1000,result:'won'},
-    {id:'b_m15_5',matchId:'M15',playerName:'Feilong',pick:'Mojo',amount:1000,result:'won'},
-    {id:'b_m15_6',matchId:'M15',playerName:'Gaia',pick:'Zia',amount:200,result:'lost'},
-    {id:'b_m15_7',matchId:'M15',playerName:'Gunbae',pick:'Mojo',amount:2950,result:'won'},
-    {id:'b_m15_8',matchId:'M15',playerName:'HuaKui',pick:'Mojo',amount:1000,result:'won'},
-    {id:'b_m15_9',matchId:'M15',playerName:'HuangJii',pick:'Mojo',amount:1000,result:'won'},
-    {id:'b_m15_10',matchId:'M15',playerName:'iLYa',pick:'Mojo',amount:2000,result:'won'},
-    {id:'b_m15_11',matchId:'M15',playerName:'Jia Ying',pick:'Mojo',amount:1900,result:'won'},
-    {id:'b_m15_12',matchId:'M15',playerName:'Jjooo',pick:'Zia',amount:2300,result:'lost'},
-    {id:'b_m15_13',matchId:'M15',playerName:'Jyun',pick:'Mojo',amount:1000,result:'won'},
-    {id:'b_m15_14',matchId:'M15',playerName:'Mojo',pick:'Mojo',amount:6400,result:'won'},
-    {id:'b_m15_15',matchId:'M15',playerName:'Nishiora',pick:'Mojo',amount:2900,result:'won'},
-    {id:'b_m15_16',matchId:'M15',playerName:'Ogeypeko',pick:'Mojo',amount:1500,result:'won'},
-    {id:'b_m15_17',matchId:'M15',playerName:'plop',pick:'Mojo',amount:830,result:'won'},
-    {id:'b_m15_18',matchId:'M15',playerName:'RoO',pick:'Mojo',amount:8000,result:'won'},
-    {id:'b_m15_19',matchId:'M15',playerName:'Seraliea',pick:'Mojo',amount:500,result:'won'},
-    {id:'b_m15_20',matchId:'M15',playerName:'Skylleria',pick:'Mojo',amount:1100,result:'won'},
-    {id:'b_m15_21',matchId:'M15',playerName:'Snorkie',pick:'Zia',amount:100,result:'lost'},
-    {id:'b_m15_22',matchId:'M15',playerName:'Tsurea',pick:'Mojo',amount:100,result:'won'},
-    {id:'b_m15_23',matchId:'M15',playerName:'xJunhaox',pick:'Mojo',amount:1300,result:'won'},
-    {id:'b_m15_24',matchId:'M15',playerName:'Zia',pick:'Mojo',amount:649,result:'won'},
-    {id:'b_m15_25',matchId:'M15',playerName:'Zia',pick:'Zia',amount:1,result:'lost'},
-    {id:'b_m15_26',matchId:'M15',playerName:'Vorpalpledge',pick:'Mojo',amount:700,result:'won'},
-    {id:'b_m16_1',matchId:'M16',playerName:'Chion',pick:'SirShadow',amount:1000,result:null},
-    {id:'b_m16_2',matchId:'M16',playerName:'Cozmo',pick:'SirShadow',amount:600,result:null},
-    {id:'b_m16_3',matchId:'M16',playerName:'Mojo',pick:'iLYa',amount:1660,result:null},
-    {id:'b_m16_4',matchId:'M16',playerName:'tsukiyue',pick:'iLYa',amount:600,result:null},
-    {id:'b_m16_5',matchId:'M16',playerName:'iLYa',pick:'iLYa',amount:5100,result:null},
-    {id:'b_m17_1',matchId:'M17',playerName:'Chion',pick:'tsukiyue',amount:1000,result:null},
-    {id:'b_m17_2',matchId:'M17',playerName:'Cozmo',pick:'OPM',amount:500,result:null},
-    {id:'b_m17_3',matchId:'M17',playerName:'Mojo',pick:'OPM',amount:1000,result:null},
-    {id:'b_m17_4',matchId:'M17',playerName:'plop',pick:'OPM',amount:2,result:null},
-    {id:'b_m17_5',matchId:'M17',playerName:'tsukiyue',pick:'OPM',amount:450,result:null},
-    {id:'b_m17_6',matchId:'M17',playerName:'xZel',pick:'OPM',amount:1100,result:null},
-    {id:'b_m18_1',matchId:'M18',playerName:'Cozmo',pick:'Jahbs',amount:400,result:null},
-    {id:'b_m20_1',matchId:'M20',playerName:'Vorpalpledge',pick:'Mojo',amount:1200,result:null},
-  ];
-  for(let i=0;i<SEED_B.length;i+=400){
-    const bb=writeBatch(_db);
-    SEED_B.slice(i,i+400).forEach(b=>bb.set(doc(_db,'bets',b.id),b));
-    await bb.commit();
-  }
-
-  const SEED_L=[
-    ["AniNing",1200],["Chion",1600],["Cozmo",1600],["Dumamay",1250],
-    ["Feilong",600],["Gaia",600],["Gunbae",1600],["HotBBQGrill",200],
-    ["HuaKui",800],["HuangJii",700],["iLYa",670],["Jahbs",600],
-    ["Jjooo",1600],["Mici",300],["Mojo",600],["Nishiora",1600],
-    ["Ogeypeko",600],["OPM",600],["Petter",600],["plop",600],
-    ["RoO",600],["Seraliea",600],["Serene",600],["Skylleria",1600],
-    ["Snorkie",600],["Tsurea",600],["xJunhaox",1000],["xZel",1600],
-  ];
-  const lb=writeBatch(_db);
-  SEED_L.forEach(([name,amount],i)=>{let rem=amount,ci=0;while(rem>0){lb.set(doc(_db,'loans','l_r1_'+i+'_'+ci),{playerName:name,amount:Math.min(rem,600),loanRound:1,repaid:false});rem-=600;ci++;}});
-  await lb.commit();
-
-  const SEED_AB={"Alrenq":400,"Angel (LilMilotic)":200,"AniNing":400,"AutisticPickle":100,"Cai":100,"Chion":700,"Cozmo":550,"deeepeee3":250,"Dumamay":450,"Feilong":500,"FortunaKirana":500,"Gaia":200,"Gunbae":450,"HaaanZ":100,"HotBBQGrill":250,"HuaKui":450,"HuangJii":350,"iLYa":450,"Jade-Rooster":100,"Jahbs":350,"Jia Ying":400,"Jjooo":250,"Jyun":350,"Lviv":400,"Mojo":450,"Nishiora":400,"Nshki":100,"Ogeypeko":600,"OishiEdo":250,"OPM":500,"Petter":200,"plop":500,"Python":100,"Reito":200,"RoO":700,"Sanhua":100,"Seraliea":500,"Serene":350,"SirShadow":300,"Skylleria":500,"Snorkie":600,"TK":300,"Togez":400,"tsukiyue":350,"Tsurea":450,"Villya":200,"Vorpalpledge":100,"XE":100,"xJunhaox":450,"XNeaR":100,"xZel":100,"YangKai":600,"Yumad":100,"Zia":350};
-  const ab=writeBatch(_db);
-  Object.entries(SEED_AB).forEach(([name,delta])=>{if(delta>0)ab.set(doc(_db,'adjustments','adj_ab_'+name.replace(/[^a-z0-9]/gi,'_')),{playerName:name,delta,reason:'Audience bonus (Round 1)',date:'2026-05-01'});});
-  await ab.commit();
-
-  await setDoc(_cfgDoc(),{
-    loanRounds:[
-      {round:1,label:'Round 1 (24→12)',maxLoan:600,open:false},
-      {round:2,label:'Round 2 (12→6)',maxLoan:1000,open:true},
-      {round:3,label:'Round 3 (6→3)',maxLoan:0,open:false},
-      {round:4,label:'Final (Round Robin)',maxLoan:0,open:false}
-    ],
-    currentRound:2,pins:{},collapsedRounds:{'Round 1 (24→12)':true}
-  });
-  console.log('Seed complete!');
+function getPlayer(name){
+  return S.players.find(p=>norm(p.name)===norm(name));
 }
 
-// ── COIN CALC ──────────────────────────────
-function norm(n){return (n||'').toLowerCase().trim();}
-function findPlayer(name){return S.players.find(p=>norm(p.name)===norm(name));}
-
-function getCoins(name){
-  let c=START_COINS;
-  S.loans.filter(l=>norm(l.playerName)===norm(name)).forEach(l=>{c+=l.amount;});
-  S.loans.filter(l=>norm(l.playerName)===norm(name)&&l.repaid).forEach(l=>{c-=Math.round(l.amount*1.2);});
-  S.bets.filter(b=>norm(b.playerName)===norm(name)).forEach(b=>{
-    if(b.result==='walkover'||b.result==='voided') return; // no net effect on balance
-    c-=b.amount;
-    if(b.result==='won') c+=b.amount*BET_MULT;
-  });
-  (S.adjustments||[]).filter(a=>norm(a.playerName)===norm(name)).forEach(a=>{c+=a.delta;});
-  return Math.round(c);
+// Spendable = balance directly (stake deducted at placement; no double-subtract)
+function getSpendable(name){
+  const p = getPlayer(name);
+  if(!p) return 0;
+  return p.balance||0;
 }
-function getDebt(name){
-  return S.loans.filter(l=>norm(l.playerName)===norm(name)&&!l.repaid)
-    .reduce((s,l)=>s+Math.round(l.amount*1.2),0);
-}
-function getNet(name){return getCoins(name)-getDebt(name);}
 
-// ── DISPLAY-MODEL HELPERS ───────────────────
-// getPendingStakes: coins currently locked in unresolved bets.
-// These are deducted from getCoins() (so you can't re-bet them),
-// but they are NOT lost yet — the match hasn't resolved.
+// Coins locked in unresolved pending bets — informational only
 function getPendingStakes(name){
   return S.bets
     .filter(b=>norm(b.playerName)===norm(name) && b.result===null)
     .reduce((s,b)=>s+b.amount, 0);
-  // Note: voided bets have result='voided' (not null) so they are excluded here correctly.
 }
 
-// getNetWorth: economic net worth matching the spreadsheet source of truth.
-// = getCoins (available) + pendingStakes (locked but still yours) − debt (owed to bank)
-// = Start + resolvedBetNet + audienceBonus − loanInterestOnly
-// Equivalent to spreadsheet ActualBalance.  Used for leaderboard ranking.
+// ── ECONOMY HELPERS — read stored fields directly ──────────────────────────
+// All five economy fields (balance, loanPrincipal, interestOwed, debt, netWorth)
+// are the SOURCE OF TRUTH from the CSV import / resync.
+// These helpers just read them — they do NOT recompute.
+// Only live actions (loan, bet, settle, reopen, govaid, edit) mutate stored values.
+
+// interestOwed is stored; read directly
+function getInterestOwed(name){
+  const p=getPlayer(name); if(!p) return 0;
+  return p.interestOwed||0;
+}
+// debt is stored; read directly
+function getDebt(name){
+  const p=getPlayer(name); if(!p) return 0;
+  return p.debt||0;
+}
+// netWorth is stored; read directly
 function getNetWorth(name){
-  return getCoins(name) + getPendingStakes(name) - getDebt(name);
+  const p=getPlayer(name); if(!p) return 0;
+  return p.netWorth||0;
 }
 
-function getLoanTaken(name, round){
-  // Per-round cap: only count loans taken during the specified round.
-  // A player who borrowed 600 in Round 1 starts Round 2 with a fresh 1000 cap.
-  return S.loans
-    .filter(l=>norm(l.playerName)===norm(name) && l.loanRound===round)
-    .reduce((s,l)=>s+l.amount, 0);
+// ── SEED (run once on empty DB) ────────────
+async function initDefault(){
+  const snap = await getDocs(_col.players());
+  if(!snap.empty){ console.log('DB already seeded'); return; }
+  console.log('Seeding fresh DB from CSV snapshot...');
+
+  // ── Player seed — balances directly from CSV snapshot ──────────────────
+  // Schema: { balance, loanPrincipal, interestOwed, debt, netWorth }
+  // loanPrincipal = capital borrowed (used vs cap)
+  // interestOwed  = loanPrincipal * 20%
+  // debt          = loanPrincipal + interestOwed
+  // netWorth      = balance - debt
+  const SEED_PLAYERS = [
+    {name:"Jahbs",        balance:100,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1820, status:"active"},
+    {name:"Jjooo",        balance:200,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1720, status:"spectator"},
+    {name:"Snorkie",      balance:200,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1720, status:"spectator"},
+    {name:"Skylleria",    balance:250,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1670, status:"spectator"},
+    {name:"iLYa",         balance:300,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1620, status:"active"},
+    {name:"Petter",       balance:0,     loanPrincipal:600, interestOwed:120, debt:720, netWorth:-720,  status:"spectator"},
+    {name:"Gaia",         balance:250,   loanPrincipal:600, interestOwed:120, debt:720, netWorth:-470,  status:"spectator"},
+    {name:"OPM",          balance:700,   loanPrincipal:600, interestOwed:120, debt:720, netWorth:-20,   status:"active"},
+    {name:"Hel",          balance:0,     loanPrincipal:0, interestOwed:0, debt:0,   netWorth:0,     status:"spectator"},
+    {name:"Sanhua",       balance:100,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:100,   status:"active"},
+    {name:"Zia",          balance:100,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:100,   status:"spectator"},
+    {name:"Huangjii",     balance:1050,  loanPrincipal:700, interestOwed:140, debt:840, netWorth:210,   status:"active"},
+    {name:"Python",       balance:250,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:250,   status:"spectator"},
+    {name:"xZel",         balance:2200,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:280,   status:"spectator"},
+    {name:"AutisticPickle",balance:300,  loanPrincipal:0, interestOwed:0, debt:0,   netWorth:300,   status:"spectator"},
+    {name:"Cai",          balance:300,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:300,   status:"spectator"},
+    {name:"HaaanZ",       balance:300,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:300,   status:"spectator"},
+    {name:"Jade-Rooster", balance:300,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:300,   status:"spectator"},
+    {name:"Nshki",        balance:300,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:300,   status:"spectator"},
+    {name:"XE",           balance:300,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:300,   status:"spectator"},
+    {name:"XNeaR",        balance:300,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:300,   status:"spectator"},
+    {name:"Yumad",        balance:300,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:300,   status:"spectator"},
+    {name:"Tsurea",       balance:1050,  loanPrincipal:600, interestOwed:120, debt:720, netWorth:330,   status:"spectator"},
+    {name:"Angel (LilMilotic)",balance:400,loanPrincipal:0, interestOwed:0, debt:0, netWorth:400,   status:"spectator"},
+    {name:"Villya",       balance:400,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:400,   status:"spectator"},
+    {name:"deeepeee",     balance:450,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:450,   status:"spectator"},
+    {name:"OishiEdo",     balance:450,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:450,   status:"spectator"},
+    {name:"Reito",        balance:500,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:500,   status:"active"},
+    {name:"TK",           balance:500,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:500,   status:"spectator"},
+    {name:"Lviv",         balance:600,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:600,   status:"spectator"},
+    {name:"SirShadow",    balance:600,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:600,   status:"active"},
+    {name:"Togez",        balance:600,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:600,   status:"spectator"},
+    {name:"HotBBQGrill",  balance:850,   loanPrincipal:200, interestOwed:40, debt:240,  netWorth:610,   status:"spectator"},
+    {name:"Mici",         balance:1000,  loanPrincipal:300, interestOwed:60, debt:360,  netWorth:640,   status:"spectator"},
+    {name:"Alrenq",       balance:750,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:750,   status:"spectator"},
+    {name:"YangKai",      balance:950,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:950,   status:"spectator"},
+    {name:"Dumamay",      balance:2550,  loanPrincipal:1250, interestOwed:250, debt:1500, netWorth:1050,  status:"spectator"},
+    {name:"Vorpalpledge", balance:1300,  loanPrincipal:0, interestOwed:0, debt:0,   netWorth:1300,  status:"spectator"},
+    {name:"plop",         balance:2132,  loanPrincipal:600, interestOwed:120, debt:720, netWorth:1412,  status:"spectator"},
+    {name:"FortunaKirana",balance:1500,  loanPrincipal:0, interestOwed:0, debt:0,   netWorth:1500,  status:"spectator"},
+    {name:"Cozmo",        balance:3480,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:1560,  status:"active"},
+    {name:"xJunhaox",     balance:2950,  loanPrincipal:1000, interestOwed:200, debt:1200, netWorth:1750,  status:"spectator"},
+    {name:"Serene",       balance:3800,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:1880,  status:"spectator"},
+    {name:"Seraliea",     balance:2700,  loanPrincipal:600, interestOwed:120, debt:720, netWorth:1980,  status:"spectator"},
+    {name:"Feilong",      balance:3000,  loanPrincipal:600, interestOwed:120, debt:720, netWorth:2280,  status:"spectator"},
+    {name:"Ogeypeko",     balance:3000,  loanPrincipal:600, interestOwed:120, debt:720, netWorth:2280,  status:"spectator"},
+    {name:"Huakui",       balance:3550,  loanPrincipal:800, interestOwed:160, debt:960, netWorth:2590,  status:"spectator"},
+    {name:"tsukiyue",     balance:3450,  loanPrincipal:600, interestOwed:120, debt:720, netWorth:2730,  status:"active"},
+    {name:"Jia Ying",     balance:3900,  loanPrincipal:0, interestOwed:0, debt:0,   netWorth:3900,  status:"spectator"},
+    {name:"Nishiora",     balance:5900,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:3980,  status:"spectator"},
+    {name:"Jyun",         balance:4200,  loanPrincipal:0, interestOwed:0, debt:0,   netWorth:4200,  status:"spectator"},
+    {name:"Gunbae",       balance:6150,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:4230,  status:"active"},
+    {name:"AniNing",      balance:8000,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:6080,  status:"active"},
+    {name:"Chion",        balance:8030,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:6110,  status:"active"},
+    {name:"Mojo",         balance:17580, loanPrincipal:600, interestOwed:120, debt:720, netWorth:16860, status:"active"},
+    {name:"RoO",          balance:37814, loanPrincipal:600, interestOwed:120, debt:720, netWorth:37094, status:"active"},
+  ];
+
+  const b = writeBatch(_db);
+  SEED_PLAYERS.forEach((p,i)=>b.set(doc(_db,'players','p'+i), p));
+  await b.commit();
+
+  // Semis matches — TBD placeholders, admin fills in names
+  const SEED_MATCHES = [
+    {id:'SF1',round:'Semis',roundLabel:'Semifinals',p1:'TBD',p2:'TBD',status:'pending',winner:null,bettingOpen:false,day:'Monday',time:''},
+    {id:'SF2',round:'Semis',roundLabel:'Semifinals',p1:'TBD',p2:'TBD',status:'pending',winner:null,bettingOpen:false,day:'Monday',time:''},
+    {id:'SF3',round:'Semis',roundLabel:'Semifinals',p1:'TBD',p2:'TBD',status:'pending',winner:null,bettingOpen:false,day:'Monday',time:''},
+    {id:'SF4',round:'Semis',roundLabel:'Semifinals',p1:'TBD',p2:'TBD',status:'pending',winner:null,bettingOpen:false,day:'Monday',time:''},
+  ];
+  const b2 = writeBatch(_db);
+  SEED_MATCHES.forEach(m=>b2.set(doc(_db,'matches',m.id),m));
+  await b2.commit();
+
+  await setDoc(_cfgDoc(),{loanOpen:false,pins:{},debtCapHistory:[],maxDebt:0});
+  console.log('Seed complete — fresh semis setup ready.');
 }
-function getCurLR(){return S.loanRounds.find(r=>r.round===S.currentRound)||S.loanRounds[1];}
 
 // ── AUTH ───────────────────────────────────
+function norm(n){return (n||'').toLowerCase().trim();}
 function showScreen(id){
   const ls=document.getElementById('loading-screen');if(ls)ls.style.display='none';
   ['login-screen','register-screen','pin-screen','admin-login-screen','player-screen','admin-screen']
-    .forEach(s=>{document.getElementById(s).classList.toggle('hidden',s!==id);});
+    .forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));
 }
 function showLogin(){populateDropdown();showScreen('login-screen');}
 function showAdminLogin(){showScreen('admin-login-screen');}
@@ -684,7 +490,7 @@ function startLogin(){
 }
 function loginAdmin(){
   if(document.getElementById('admin-pw').value!==ADMIN_PW){showErr('admin-pw-error','Incorrect password');return;}
-  S.currentUser='Admin';isAdmin=true;showScreen('admin-screen');renderAMatches();renderAMatches();
+  S.currentUser='Admin';isAdmin=true;showScreen('admin-screen');renderAMatches();
 }
 
 let pinBuf='',regBuf='',regConf='',regStage='set';
@@ -729,8 +535,12 @@ function regKey(k){
   else if(regStage==='confirm'&&regConf.length===4) setTimeout(async ()=>{
     if(regBuf===regConf){
       const name=document.getElementById('reg-name').value.trim();
-      if(!findPlayer(name)){await _fsSet('players','p'+Date.now(),{name,status:'spectator'});}
-      const _np={...S.pins,[norm(name)]:regBuf};await _fsCfg({pins:_np});
+      // Add player to DB if not already there
+      if(!S.players.find(p=>norm(p.name)===norm(name))){
+        await _fsSet('players','p'+Date.now(),{name,balance:0,loanPrincipal:0,interestOwed:0,debt:0,netWorth:0,status:'spectator'});
+      }
+      const newPins={...S.pins,[norm(name)]:regBuf};
+      await _fsCfg({pins:newPins});
       S.currentUser=name;isAdmin=false;
       document.getElementById('player-name-hdr').textContent=name;
       showScreen('player-screen');
@@ -750,89 +560,64 @@ function showErr(id,msg){
   setTimeout(()=>el.classList.add('hidden'),3500);
 }
 
-// ── TABS ───────────────────────────────────
+// ── TABS ────────────────────────────────────
 function playerTab(el,id){
   _curPTab=id;
   document.querySelectorAll('#player-screen .tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  ['p-matches','p-leaderboard','p-mybets','p-bank'].forEach(x=>document.getElementById(x).classList.add('hidden'));
+  ['p-matches','p-leaderboard','p-mybets','p-bank'].forEach(x=>{const e=document.getElementById(x);if(e)e.classList.add('hidden');});
   document.getElementById(id).classList.remove('hidden');
-  if(id==='p-leaderboard')renderLeaderboard();
-  if(id==='p-mybets')renderMyBets();
-  if(id==='p-bank')renderPBank();
+  if(id==='p-leaderboard') renderLeaderboard();
+  if(id==='p-mybets') renderMyBets();
+  if(id==='p-bank') renderPlayerBank();
 }
 function adminTab(el,id){
   _curATab=id;
   document.querySelectorAll('#admin-screen .tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  ['a-matches','a-players','a-bank','a-audience','a-corrections','a-settings'].forEach(x=>document.getElementById(x).classList.add('hidden'));
+  ['a-matches','a-players','a-bank','a-corrections','a-settings'].forEach(x=>document.getElementById(x).classList.add('hidden'));
   document.getElementById(id).classList.remove('hidden');
-  if(id==='a-matches')renderAMatches();
-  if(id==='a-players')renderAPlayers();
-  if(id==='a-bank')renderABank();
-  if(id==='a-audience')renderAudience();
-  if(id==='a-corrections')renderACorrections();
-  if(id==='a-settings')renderASettings();
+  if(id==='a-matches')     renderAMatches();
+  if(id==='a-players')     renderAPlayers();
+  if(id==='a-bank')        renderABank();
+  if(id==='a-corrections') renderACorrections();
+  if(id==='a-settings')    renderASettings();
 }
 
-// ── HELPERS ────────────────────────────────
+// ── HELPERS ──────────────────────────────────
 function initials(n){return n.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();}
 const AV=[['#1E2A3A','#6AA8D8'],['#2A1E3A','#A87AD8'],['#1E3A2A','#6AD8A0'],['#3A2A1E','#D8A06A'],['#3A1E2A','#D86A8A'],['#1E3A3A','#6AD8D4'],['#2E2A1E','#C8B86A']];
 function avStyle(n){let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))%AV.length;const[bg,co]=AV[Math.abs(h)%AV.length];return `background:${bg};color:${co};border-color:${co}33`;}
 function fmt(n){return Math.round(n).toLocaleString();}
 function closeModal(id){document.getElementById(id).classList.add('hidden');}
 
-// ── COLLAPSIBLE ROUNDS ──────────────────────
-async function toggleRound(label){
-  const cr={...S.collapsedRounds};cr[label]=!cr[label];
-  const body=document.getElementById('round-body-'+roundKey(label));
-  const btn=document.getElementById('round-btn-'+roundKey(label));
-  if(body){body.style.maxHeight=cr[label]?'0':body.scrollHeight+5000+'px';}
-  if(btn)btn.textContent=cr[label]?'Show':'Hide';
-  await _fsCfg({collapsedRounds:cr});
-}
-function roundKey(label){
-  // safe hash - no btoa, works with unicode arrows
-  let h=5381;for(let i=0;i<label.length;i++)h=(h*33^label.charCodeAt(i))>>>0;
-  return 'r'+h.toString(36);
-}
-function roundSection(label,content,defaultCollapsed){
-  const k=roundKey(label);
-  const isCollapsed=S.collapsedRounds&&S.collapsedRounds[label]!==undefined?S.collapsedRounds[label]:defaultCollapsed;
-  return `<div class="round-header" onclick="toggleRound('${label.replace(/'/g,"\\'")}')">
-    <span class="round-header-label">${label}</span>
-    <span class="round-toggle" id="round-btn-${k}">${isCollapsed?'Show':'Hide'}</span>
-  </div>
-  <div class="round-body ${isCollapsed?'collapsed':''}" id="round-body-${k}" style="max-height:${isCollapsed?'0':'9999px'}">
-    ${content}
-  </div>`;
-}
-
-// ── PLAYER: STATS ──────────────────────────
+// ── PLAYER: STATS ────────────────────────────
 function refreshStats(){
-  const n=S.currentUser;
-  const coins   = getCoins(n);          // spendable right now
-  const pending = getPendingStakes(n);  // locked in live bets, still yours
-  const debt    = getDebt(n);           // owed to Cat Bank (principal + 20%)
-  const worth   = getNetWorth(n);       // economic net worth = coins + pending − debt
-  const mb = S.bets.filter(b=>norm(b.playerName)===norm(n));
-  const won = mb.filter(b=>b.result==='won').length;
-  const total   = mb.filter(b=>b.result!==null&&b.result!=='walkover').length;
+  const n = S.currentUser;
+  const p = getPlayer(n);
+  if(!p) return;
+  const spendable = getSpendable(n);
+  const pending   = getPendingStakes(n);
+  const debt      = p.debt||0;
+  const worth     = p.netWorth||0;
+  const myBets    = S.bets.filter(b=>norm(b.playerName)===norm(n));
+  const won       = myBets.filter(b=>b.result==='won').length;
+  const total     = myBets.filter(b=>b.result!==null&&b.result!=='walkover'&&b.result!=='voided').length;
   document.getElementById('player-stats').innerHTML=`
     <div class="stat-card">
-      <div class="stat-label">Available Coins</div>
-      <div class="stat-val ${coins<0?'red':''}">${fmt(coins)}</div>
-      <div style="font-size:11px;color:var(--text-dim);margin-top:4px">spendable now</div>
+      <div class="stat-label">Spendable Now</div>
+      <div class="stat-val ${spendable<0?'red':''}">${fmt(spendable)}</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px">wallet balance</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Pending Stakes</div>
-      <div class="stat-val ${pending>0?'':''}${pending>0?'':'green'}" style="color:${pending>0?'var(--gold)':'var(--text-dim)'}">${pending>0?fmt(pending):'—'}</div>
+      <div class="stat-val" style="color:${pending>0?'var(--gold)':'var(--text-dim)'}">${pending>0?fmt(pending):'—'}</div>
       <div style="font-size:11px;color:var(--text-dim);margin-top:4px">${pending>0?'locked in live bets':'no active bets'}</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Debt Owed</div>
       <div class="stat-val ${debt>0?'red':''}">${debt>0?'−'+fmt(debt):'—'}</div>
-      <div style="font-size:11px;color:var(--text-dim);margin-top:4px">${debt>0?'repay to Cat Bank':'no debt'}</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px">${(p.loanPrincipal||0)>0?'loan '+fmt(p.loanPrincipal||0)+' + interest '+fmt(p.interestOwed||0):'no debt'}</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Net Worth</div>
@@ -841,39 +626,73 @@ function refreshStats(){
     </div>`;
 }
 
-// ── PLAYER: MATCHES ─────────────────────────
+// ── PLAYER: MATCHES ──────────────────────────
 function renderPMatches(){
-  const rounds=[...new Set(S.matches.map(m=>m.roundLabel))];
-  let html='';
-  rounds.forEach(rl=>{
-    const ms=S.matches.filter(m=>m.roundLabel===rl&&!(m.p1==='TBD'&&m.p2==='TBD'));
-    if(!ms.length) return;
-    let inner='<div class="match-grid">';
-    ms.forEach(m=>{
-      // All bets by this player on this match (may be multiple)
-      const myBets=S.bets.filter(b=>b.matchId===m.id&&norm(b.playerName)===norm(S.currentUser)&&b.result!=='voided');
-      const myBetsActive=myBets.filter(b=>b.result===null);
-      const p1pot=S.bets.filter(b=>b.matchId===m.id&&norm(b.pick)===norm(m.p1)&&b.result!=='voided').reduce((s,b)=>s+b.amount,0);
-      const p2pot=S.bets.filter(b=>b.matchId===m.id&&norm(b.pick)===norm(m.p2)&&b.result!=='voided').reduce((s,b)=>s+b.amount,0);
-      const info=m.day?(m.day+(m.time?' · '+m.time:'')):'';
+  const ms = S.matches.filter(m=>!(m.p1==='TBD'&&m.p2==='TBD'));
+  if(!ms.length){
+    document.getElementById('p-matches').innerHTML='<div class="alert alert-info">Semifinals matchups coming soon — stay tuned!</div>';
+    return;
+  }
+  let html='<div class="match-grid">';
+  ms.forEach(m=>{
+    const myBets = S.bets.filter(b=>b.matchId===m.id&&norm(b.playerName)===norm(S.currentUser)&&b.result!=='voided');
+    const myActive = myBets.filter(b=>b.result===null);
+    const p1pot = S.bets.filter(b=>b.matchId===m.id&&norm(b.pick)===norm(m.p1)&&b.result!=='voided').reduce((s,b)=>s+b.amount,0);
+    const p2pot = S.bets.filter(b=>b.matchId===m.id&&norm(b.pick)===norm(m.p2)&&b.result!=='voided').reduce((s,b)=>s+b.amount,0);
+    const info = m.day?(m.day+(m.time?' · '+m.time:'')):'' ;
+    let myBetsSummary='';
+    if(myBets.length){
+      const lines=myBets.map(b=>{
+        const res=b.result==='won'?` — Won ${fmt(b.amount*BET_MULT)} 🎉`
+          :b.result==='lost'?` — Lost 💸`
+          :b.result==='walkover'?' — Walkover':' — Pending';
+        return `${fmt(b.amount)} on <strong>${b.pick}</strong>${res}`;
+      }).join('<br>');
+      myBetsSummary=`<div class="alert alert-gold" style="margin:6px 0;font-size:12px">${lines}</div>`;
+    }
+    const isRanked=m.matchType==='ranked';
+    const contestants=(m.contestants||m.p1||'').split(',').map(s=>s.trim()).filter(Boolean);
+    const totalPot=S.bets.filter(b=>b.matchId===m.id&&b.result!=='voided').reduce((s,b)=>s+b.amount,0);
 
-      // Summary of this player's existing bets on this match
-      let myBetsSummary='';
-      if(myBets.length){
-        const lines=myBets.map(b=>{
-          const res=b.result==='won'?` — Won ${fmt(b.amount*BET_MULT)} 🎉`
+    // Format ranked bet picks for display
+    if(myBets.length&&isRanked){
+      const lines=myBets.map(b=>{
+        let pickDisplay=b.pick;
+        if(b.betType==='ranked'){
+          const parts=(b.pick||'').split('|').map(p=>{
+            const[pos,name]=p.split(':');
+            const medals=['','🥇','🥈','🥉'];
+            return `${medals[parseInt(pos)]||pos} ${name}`;
+          });
+          pickDisplay=parts.join(' · ');
+          const correctNote=b.correctPositions!=null?` (${b.correctPositions}/3 correct)`:'';
+          const res=b.result==='won'?` — Won ${fmt(b.amount*6)} 🎉 (all 3 correct!)`
             :b.result==='lost'?` — Lost 💸`
-            :b.result==='walkover'?' — Walkover':' — Pending';
-          return `${fmt(b.amount)} on <strong>${b.pick}</strong>${res}`;
-        }).join('<br>');
-        myBetsSummary=`<div class="alert alert-gold" style="margin:6px 0;font-size:12px">${lines}</div>`;
-      }
-      inner+=`<div class="match-card">
-        <div class="row-between" style="margin-bottom:8px">
-          <span style="font-size:11px;color:var(--text-dim)">${m.id}${info?' · '+info:''}</span>
-          <span class="badge ${m.status==='done'?'badge-done':m.bettingOpen?'badge-open':'badge-closed'}">${m.status==='done'?'Finished':m.bettingOpen?'Betting open':'Betting closed'}</span>
-        </div>
-        <div class="match-vs">
+            :' — Pending';
+          return `${fmt(b.amount)} CC:<br>${pickDisplay}${res}`;
+        }
+        const res=b.result==='won'?` — Won ${fmt(b.amount*BET_MULT)} 🎉`
+          :b.result==='lost'?` — Lost 💸`
+          :b.result==='walkover'?' — Walkover':' — Pending';
+        return `${fmt(b.amount)} on <strong>${b.pick}</strong>${res}`;
+      }).join('<br>');
+      myBetsSummary=`<div class="alert alert-gold" style="margin:6px 0;font-size:12px">${lines}</div>`;
+    }
+
+    const matchBody = isRanked
+      ? `<div style="padding:10px 0">
+          <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Contestants — Ranking Match</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            ${contestants.map((name,i)=>{
+              const medals=['🥇','🥈','🥉',''];
+              const isResult=m.winner&&m.winner.includes(name);
+              return `<div style="background:var(--bg3);border-radius:var(--radius-sm);padding:8px 10px;font-family:'Cinzel',serif;font-size:13px;color:${isResult?'var(--gold)':'var(--text)'}">${medals[i]||''}${name}</div>`;
+            }).join('')}
+          </div>
+          ${m.winner&&m.winner!=='Walkover'?`<div class="alert alert-success" style="margin-top:8px;padding:6px 10px;font-size:12px">Result: ${m.winner.split('|').map(r=>{const[p,n]=r.split(':');const medals=['','🥇','🥈','🥉'];return medals[parseInt(p)]+' '+n;}).join(' · ')}</div>`:''}
+          <div style="font-size:11px;color:var(--text-dim);margin-top:6px">Total staked: ${fmt(totalPot)} CC · Payout: all 3 exact → 6× · partial = no payout</div>
+        </div>`
+      : `<div class="match-vs">
           <div class="match-player">
             <div class="match-player-name ${m.winner===m.p1?'winner':''}">${m.p1}${m.winner===m.p1?' ✦':''}</div>
             <div class="match-pot">${fmt(p1pot)} coins bet</div>
@@ -883,227 +702,197 @@ function renderPMatches(){
             <div class="match-player-name ${m.winner===m.p2?'winner':''}">${m.p2}${m.winner===m.p2?' ✦':''}</div>
             <div class="match-pot">${fmt(p2pot)} coins bet</div>
           </div>
-        </div>
-        ${myBetsSummary}
-        ${m.bettingOpen?`<button class="btn btn-gold btn-full" style="margin-top:6px" onclick="openBetModal('${m.id}')">${myBetsActive.length?'Add Another Bet':'Place Bet'}</button>`:''}
-      </div>`;
-    });
-    inner+='</div>';
-    const isDone=ms.every(m=>m.status==='done');
-    html+=roundSection(rl,inner,isDone);
+        </div>`;
+
+    html+=`<div class="match-card">
+      <div class="row-between" style="margin-bottom:8px">
+        <span style="font-size:11px;color:var(--text-dim)">${m.id}${info?' · '+info:''}${isRanked?' · <span style="color:var(--gold)">Rankings</span>':''}</span>
+        <span class="badge ${m.status==='done'?'badge-done':m.bettingOpen?'badge-open':'badge-closed'}">${m.status==='done'?'Finished':m.bettingOpen?'Betting open':'Betting closed'}</span>
+      </div>
+      ${matchBody}
+      ${myBetsSummary}
+      ${m.status!=='done'&&m.bettingOpen?`<button class="btn btn-gold btn-full" style="margin-top:6px" onclick="openBetModal('${m.id}')">${myActive.length?'Add Another Bet':'Place Bet'}</button>`:''}
+    </div>`;
   });
-  document.getElementById('p-matches').innerHTML=html||'<div class="alert alert-info">No matches yet.</div>';
+  html+='</div>';
+  document.getElementById('p-matches').innerHTML=html;
 }
 
-// ── PLAYER: LEADERBOARD ─────────────────────
+// ── PLAYER: LEADERBOARD ──────────────────────
 function renderLeaderboard(){
-  const ps=S.players.map(p=>({
+  const ps = S.players.map(p=>({
     ...p,
-    coins:   getCoins(p.name),
-    pending: getPendingStakes(p.name),
-    debt:    getDebt(p.name),
-    worth:   getNetWorth(p.name),   // ranking key — matches spreadsheet
+    spendable: getSpendable(p.name),
+    pending:   getPendingStakes(p.name),
+    worth:     p.netWorth||0,
   })).sort((a,b)=>b.worth-a.worth);
 
-  const broke=ps.filter(p=>p.debt>0).sort((a,b)=>b.debt-a.debt);
-  const top5   = ps.slice(0,5);
-  const btm5   = ps.slice(-5).reverse();   // worst first, then reversed so #1 worst is on top
+  const top5 = ps.slice(0,5);
+  const btm5 = [...ps].reverse().slice(0,5);
 
-  // ── helper: one compact highlight row ──────────────────────────────
-  function spotRow(p, rank, opts={}){
-    const isMe = norm(p.name)===norm(S.currentUser);
-    const pendingTag = p.pending>0
-      ? `<span style="font-size:10px;color:var(--gold);background:rgba(201,168,76,.12);
-           border:0.5px solid rgba(201,168,76,.3);border-radius:4px;padding:1px 6px;
-           margin-left:6px;vertical-align:middle">⏳ ${fmt(p.pending)}</span>`
-      : '';
-    const rankColor = opts.rankColor||'var(--gold)';
-    const worthColor = p.worth<0?'var(--red)':(opts.worthColor||'var(--green)');
-    return `<div style="display:flex;align-items:center;gap:12px;
-        padding:10px 16px;border-bottom:0.5px solid rgba(201,168,76,.07)">
-      <span style="font-family:'Cinzel',serif;font-size:13px;color:${rankColor};
-            width:32px;flex-shrink:0;text-align:center">#${rank}</span>
+  function spotRow(p,rank,opts={}){
+    const isMe=norm(p.name)===norm(S.currentUser);
+    const pendTag=p.pending>0?`<span style="font-size:10px;color:var(--gold);background:rgba(201,168,76,.12);border:0.5px solid rgba(201,168,76,.3);border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:middle">⏳ ${fmt(p.pending)}</span>`:'';
+    const rc=opts.rankColor||'var(--gold)';
+    const wc=p.worth<0?'var(--red)':(opts.worthColor||'var(--green)');
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:0.5px solid rgba(201,168,76,.07)">
+      <span style="font-family:'Cinzel',serif;font-size:13px;color:${rc};width:32px;flex-shrink:0;text-align:center">#${rank}</span>
       <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
         <div class="avatar" style="${avStyle(p.name)}">${initials(p.name)}</div>
-        <span style="font-weight:${isMe?'600':'400'};white-space:nowrap;
-              overflow:hidden;text-overflow:ellipsis">${p.name}${isMe?' <span style="font-size:11px;color:var(--text-dim)">(you)</span>':''}</span>
-        ${pendingTag}
+        <span style="font-weight:${isMe?'600':'400'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}${isMe?' <span style="font-size:11px;color:var(--text-dim)">(you)</span>':''}</span>
+        ${pendTag}
       </div>
-      <span style="font-family:'Cinzel',serif;font-size:15px;color:${worthColor};
-            flex-shrink:0">${fmt(p.worth)}</span>
+      <span style="font-family:'Cinzel',serif;font-size:15px;color:${wc};flex-shrink:0">${fmt(p.worth)}</span>
     </div>`;
   }
 
-  // ── TOP 5 panel ─────────────────────────────────────────────────────
-  let html=`
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
-
-    <div style="background:var(--bg2);border:0.5px solid rgba(201,168,76,.35);
-         border-radius:var(--radius);overflow:hidden">
-      <div style="padding:10px 16px;background:rgba(201,168,76,.07);
-           border-bottom:0.5px solid rgba(201,168,76,.2);
-           display:flex;align-items:center;gap:8px">
+  let html=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+    <div style="background:var(--bg2);border:0.5px solid rgba(201,168,76,.35);border-radius:var(--radius);overflow:hidden">
+      <div style="padding:10px 16px;background:rgba(201,168,76,.07);border-bottom:0.5px solid rgba(201,168,76,.2);display:flex;align-items:center;gap:8px">
         <span style="font-size:16px">🏆</span>
-        <span style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold);
-              letter-spacing:.04em">Top 5</span>
+        <span style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold)">Top 5</span>
         <span style="font-size:11px;color:var(--text-dim);margin-left:auto">Net Worth</span>
       </div>
       ${top5.map((p,i)=>{
-        const rankColors=['#F0D080','#C8D0D8','#C08040','var(--text-dim)','var(--text-dim)'];
-        return spotRow(p, i+1, {rankColor:rankColors[i]||'var(--text-dim)'});
+        const rc=['#F0D080','#C8D0D8','#C08040','var(--text-dim)','var(--text-dim)'];
+        return spotRow(p,i+1,{rankColor:rc[i]||'var(--text-dim)'});
       }).join('')}
     </div>
-
-    <div style="background:var(--bg2);border:0.5px solid rgba(192,64,64,.3);
-         border-radius:var(--radius);overflow:hidden">
-      <div style="padding:10px 16px;background:rgba(192,64,64,.06);
-           border-bottom:0.5px solid rgba(192,64,64,.2);
-           display:flex;align-items:center;gap:8px">
+    <div style="background:var(--bg2);border:0.5px solid rgba(192,64,64,.3);border-radius:var(--radius);overflow:hidden">
+      <div style="padding:10px 16px;background:rgba(192,64,64,.06);border-bottom:0.5px solid rgba(192,64,64,.2);display:flex;align-items:center;gap:8px">
         <span style="font-size:16px">🐱</span>
-        <span style="font-family:'Cinzel',serif;font-size:13px;color:var(--red);
-              letter-spacing:.04em">Cat Debt Zone</span>
+        <span style="font-family:'Cinzel',serif;font-size:13px;color:var(--red)">Cat Debt Zone</span>
         <span style="font-size:11px;color:var(--text-dim);margin-left:auto">Net Worth</span>
       </div>
-      ${btm5.map((p,i)=>{
-        const rank = ps.length - i;
-        return spotRow(p, rank, {rankColor:'var(--red)', worthColor:'var(--red)'});
-      }).join('')}
+      ${btm5.map((p,i)=>spotRow(p,ps.length-i,{rankColor:'var(--red)',worthColor:'var(--red)'})).join('')}
     </div>
-
   </div>`;
 
-  // ── full leaderboard table ───────────────────────────────────────────
   html+=`<div class="sec">Full leaderboard</div>
   <div class="tbl-wrap"><table>
     <thead><tr>
-      <th style="width:36px"></th>
-      <th>Player</th>
-      <th>Status</th>
-      <th style="text-align:right">Available</th>
-      <th style="text-align:right">Pending</th>
-      <th style="text-align:right">Debt</th>
+      <th style="width:36px"></th><th>Player</th><th>Status</th>
+      <th style="text-align:right">Balance</th>
+      <th style="text-align:right">Loan</th>
+      <th style="text-align:right">Interest</th>
+      <th style="text-align:right">Total Debt</th>
       <th style="text-align:right">Net Worth</th>
     </tr></thead><tbody>`;
-
   ps.forEach((p,i)=>{
     const rc=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-cell';
     const isMe=norm(p.name)===norm(S.currentUser);
     html+=`<tr>
       <td><span class="${rc}">#${i+1}</span></td>
-      <td><div class="row" style="gap:8px">
-        <div class="avatar" style="${avStyle(p.name)}">${initials(p.name)}</div>
+      <td><div class="row" style="gap:8px"><div class="avatar" style="${avStyle(p.name)}">${initials(p.name)}</div>
         <span style="font-weight:${isMe?'500':'400'}">${p.name}${isMe?' <span style="font-size:11px;color:var(--text-dim)">(you)</span>':''}</span>
       </div></td>
       <td><span class="badge ${p.status==='active'?'badge-open':p.status==='eliminated'?'badge-closed':'badge-pending'}">${p.status}</span></td>
-      <td style="text-align:right;color:${p.coins<0?'var(--red)':'inherit'}">${fmt(p.coins)}</td>
-      <td style="text-align:right;color:${p.pending>0?'var(--gold)':'var(--text-dim)'}">${p.pending>0?fmt(p.pending):'—'}</td>
-      <td style="text-align:right;color:${p.debt>0?'var(--red)':'var(--text-dim)'}">${p.debt>0?'−'+fmt(p.debt):'—'}</td>
+      <td style="text-align:right;color:${p.spendable<0?'var(--red)':'inherit'}">${fmt(p.spendable)}</td>
+      <td style="text-align:right;color:${(p.loanPrincipal||0)>0?'var(--gold)':'var(--text-dim)'}">${(p.loanPrincipal||0)>0?fmt(p.loanPrincipal):'—'}</td>
+      <td style="text-align:right;color:${(p.interestOwed||0)>0?'var(--red)':'var(--text-dim)'}">${(p.interestOwed||0)>0?fmt(p.interestOwed):'—'}</td>
+      <td style="text-align:right;color:${(p.debt||0)>0?'var(--red)':'var(--text-dim)'}">${(p.debt||0)>0?'−'+fmt(p.debt):'—'}</td>
       <td style="text-align:right;font-family:'Cinzel',serif;color:${p.worth<0?'var(--red)':'var(--green)'}">${fmt(p.worth)}</td>
     </tr>`;
   });
-
   html+=`</tbody></table></div>`;
-
-  // ── Hall of Debt ─────────────────────────────────────────────────────
-  if(broke.length){
-    html+=`<div class="sec" style="margin-top:20px">🏦 Hall of Debt</div>
-    <div class="tbl-wrap"><table>
-      <thead><tr>
-        <th style="width:36px"></th>
-        <th>Player</th>
-        <th style="text-align:right">Owes to Cat Bank</th>
-      </tr></thead><tbody>`;
-    broke.forEach((p,i)=>{
-      html+=`<tr>
-        <td><span class="rank-cell" style="color:var(--red)">#${i+1}</span></td>
-        <td><div class="row" style="gap:8px"><div class="avatar" style="${avStyle(p.name)}">${initials(p.name)}</div><span>${p.name}</span></div></td>
-        <td style="text-align:right;color:var(--red);font-family:'Cinzel',serif">−${fmt(p.debt)}</td>
-      </tr>`;
-    });
-    html+=`</tbody></table></div>`;
-  }
-
   document.getElementById('p-leaderboard').innerHTML=html;
 }
 
-// ── PLAYER: MY BETS ─────────────────────────
+// ── PLAYER: MY BETS ──────────────────────────
 function renderMyBets(){
-  const mb=S.bets.filter(b=>norm(b.playerName)===norm(S.currentUser));
-  if(!mb.length){document.getElementById('p-mybets').innerHTML='<div class="alert alert-info">No bets placed yet.</div>';return;}
-  const rounds=[...new Set(mb.map(b=>{const m=S.matches.find(x=>x.id===b.matchId);return m?m.roundLabel:'Other';}))];
-  let html='';
-  rounds.forEach(rl=>{
-    const rBets=mb.filter(b=>{const m=S.matches.find(x=>x.id===b.matchId);return (m?m.roundLabel:'Other')===rl;});
-    let inner=`<div class="tbl-wrap"><table><thead><tr><th>Match</th><th>Pick</th><th style="text-align:right">Bet</th><th style="text-align:right">Result</th></tr></thead><tbody>`;
-    rBets.forEach(b=>{
-      const m=S.matches.find(x=>x.id===b.matchId);
-      const res=b.result==='won'?`<span class="badge badge-open">+${fmt(b.amount*BET_MULT)}</span>`:
-        b.result==='lost'?`<span class="badge badge-closed">-${fmt(b.amount)}</span>`:
-        b.result==='walkover'?`<span class="badge badge-walkover">Walkover</span>`:
-        b.result==='voided'?`<span class="badge badge-walkover">Voided</span>`:
-        `<span class="badge badge-pending">Pending</span>`;
-      inner+=`<tr><td style="font-size:12px">${b.matchId}${m?' · '+m.p1+' vs '+m.p2:''}</td><td style="font-weight:500">${b.pick}</td><td style="text-align:right">${fmt(b.amount)}</td><td style="text-align:right">${res}</td></tr>`;
-    });
-    inner+=`</tbody></table></div>`;
-    const allDone=rBets.every(b=>b.result!==null);
-    html+=roundSection(rl,inner,allDone);
+  const mb = S.bets.filter(b=>norm(b.playerName)===norm(S.currentUser));
+  if(!mb.length){
+    document.getElementById('p-mybets').innerHTML='<div class="alert alert-info">No bets placed yet.</div>';
+    return;
+  }
+  let html=`<div class="tbl-wrap"><table>
+    <thead><tr><th>Match</th><th>Pick</th><th style="text-align:right">Bet</th><th style="text-align:right">Result</th></tr></thead><tbody>`;
+  mb.forEach(b=>{
+    const m=S.matches.find(x=>x.id===b.matchId);
+    const res=b.result==='won'?`<span class="badge badge-open">+${fmt(b.amount*BET_MULT)}</span>`:
+      b.result==='lost'?`<span class="badge badge-closed">-${fmt(b.amount)}</span>`:
+      b.result==='walkover'?`<span class="badge badge-walkover">Walkover</span>`:
+      b.result==='voided'?`<span class="badge badge-walkover">Voided</span>`:
+      `<span class="badge badge-pending">Pending</span>`;
+    let pickDisplay=b.pick;
+    if(b.betType==='ranked'){
+      const parts=(b.pick||'').split('|').map(part=>{const[pos,name]=part.split(':');const m=['','🥇','🥈','🥉'];return (m[parseInt(pos)]||pos)+' '+name;});
+      pickDisplay=parts.join(', ');
+    }
+    const matchLabel=m?(b.betType==='ranked'?m.id+' (Finals)':m.id+' · '+m.p1+' vs '+m.p2):b.matchId;
+    html+=`<tr><td style="font-size:12px">${matchLabel}</td><td style="font-weight:500">${pickDisplay}</td><td style="text-align:right">${fmt(b.amount)}</td><td style="text-align:right">${res}</td></tr>`;
   });
+  html+=`</tbody></table></div>`;
   document.getElementById('p-mybets').innerHTML=html;
 }
 
-// ── PLAYER: BANK ────────────────────────────
-function renderPBank(){
-  const name=S.currentUser,coins=getCoins(name),debt=getDebt(name);
-  const lr=getCurLR(),taken=getLoanTaken(name,S.currentRound),remaining=Math.max(0,lr.maxLoan-taken);
-  const active=S.loans.filter(l=>norm(l.playerName)===norm(name)&&!l.repaid);
-  let html=`<div class="stats-grid" style="grid-template-columns:1fr 1fr;margin-bottom:16px">
-    <div class="stat-card"><div class="stat-label">Current coins</div><div class="stat-val ${coins<0?'red':''}">${fmt(coins)}</div></div>
-    <div class="stat-card"><div class="stat-label">Outstanding debt</div><div class="stat-val ${debt>0?'red':''}">${debt>0?'-'+fmt(debt):'0'}</div></div>
-  </div>`;
-  if(lr.open&&lr.maxLoan>0){
-    html+=`<div class="sec">Take a loan — ${lr.label}</div><div class="card">
-      <div class="alert alert-gold" style="margin-bottom:12px">Max this round: <strong>${fmt(lr.maxLoan)}</strong> &nbsp;·&nbsp; 20% interest &nbsp;·&nbsp; Taken: <strong>${fmt(taken)}</strong> &nbsp;·&nbsp; Remaining: <strong>${fmt(remaining)}</strong></div>
-      ${remaining>0?`<div class="fg"><label class="lbl">Amount (max ${fmt(remaining)})</label>
-        <input type="number" id="loan-amount" min="1" max="${remaining}" placeholder="Amount..." oninput="document.getElementById('loan-owe').textContent=fmt(parseInt(this.value||0)*1.2)" /></div>
-        <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px">You will owe <span id="loan-owe" style="color:var(--red);font-weight:500">0</span> coins back</div>
-        <button class="btn btn-gold btn-full" onclick="takeLoan()">Borrow from Cat Bank</button>`
-      :'<div class="alert alert-danger">Loan limit reached for this round.</div>'}
+// ── RANKED BET MODAL (Finals) ─────────────────
+function openRankedBetModal(matchId){
+  const m=S.matches.find(x=>x.id===matchId);if(!m)return;
+  const p=getPlayer(S.currentUser);
+  const bal=(p?.balance)||0;
+  // Players for 1st/2nd/3rd picks — p1,p2 field holds comma-separated names for ranked matches
+  const contestants=(m.contestants||m.p1||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const opts=contestants.map(n=>`<option value="${n}">${n}</option>`).join('');
+  const priorBets=S.bets.filter(b=>b.matchId===matchId&&norm(b.playerName)===norm(S.currentUser)&&b.result!=='voided');
+  const priorHtml=priorBets.length
+    ?`<div class="alert alert-gold" style="margin-bottom:12px;font-size:12px"><strong>Your ranked bets:</strong><br>${priorBets.map(b=>`${fmt(b.amount)} CC — ${b.pick}`).join('<br>')}</div>`:'';
+  document.getElementById('bet-modal-content').innerHTML=`
+    <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;font-size:13px">
+      <div style="font-family:'Cinzel',serif;color:var(--gold);margin-bottom:6px">${m.id} — Ranked Finals</div>
+      <div style="color:var(--text-dim);font-size:12px">Pick the exact finishing order. More correct placements = bigger payout.</div>
+    </div>
+    ${priorHtml}
+    <div class="fg"><label class="lbl">🥇 1st place</label><select id="rank-1">${opts}</select></div>
+    <div class="fg"><label class="lbl">🥈 2nd place</label><select id="rank-2">${opts}</select></div>
+    <div class="fg"><label class="lbl">🥉 3rd place</label><select id="rank-3">${opts}</select></div>
+    <div class="fg"><label class="lbl">Bet amount — balance: ${fmt(bal)} CC</label>
+      <input type="number" id="bet-amount" min="1" max="${bal}" placeholder="Amount..." /></div>
+    <div class="alert alert-gold" style="margin-bottom:14px;font-size:12px">
+      Get ALL 3 placements correct (exact order) → 6× payout. Partial = no payout.<br>
+      Only exact position matches count.
+    </div>
+    <div id="bet-error" class="alert alert-danger hidden"></div>
+    <div class="btn-row">
+      <button class="btn" style="flex:1" onclick="closeModal('bet-modal')">Cancel</button>
+      <button class="btn btn-gold" style="flex:1" onclick="submitRankedBet('${matchId}')">Confirm Bet</button>
     </div>`;
-  } else {
-    html+=`<div class="alert alert-info" style="margin-top:8px">The Cat Bank is closed. Admin will open it for the next round.</div>`;
-  }
-  if(active.length){
-    html+=`<div class="sec">Active loans</div><div class="tbl-wrap"><table>
-      <thead><tr><th>Round</th><th style="text-align:right">Borrowed</th><th style="text-align:right">To repay (+20%)</th></tr></thead><tbody>`;
-    active.forEach(l=>{
-      html+=`<tr><td>Round ${l.loanRound}</td><td style="text-align:right">${fmt(l.amount)}</td><td style="text-align:right;color:var(--red)">${fmt(l.amount*1.2)}</td></tr>`;
-    });
-    html+=`</tbody></table></div>`;
-  }
-  document.getElementById('p-bank').innerHTML=html;
-}
-async function takeLoan(){
-  const name=S.currentUser,amount=parseInt(document.getElementById('loan-amount').value);
-  const lr=getCurLR(),taken=getLoanTaken(name,S.currentRound);
-  if(!amount||amount<=0){alert('Enter a valid amount');return;}
-  if(amount>lr.maxLoan-taken){alert('Exceeds loan limit');return;}
-  await _fsSet('loans','l'+Date.now(),{playerName:name,amount,loanRound:S.currentRound,repaid:false});
+  document.getElementById('bet-modal').classList.remove('hidden');
 }
 
-// ── BET MODAL ───────────────────────────────
+async function submitRankedBet(matchId){
+  const r1=document.getElementById('rank-1')?.value;
+  const r2=document.getElementById('rank-2')?.value;
+  const r3=document.getElementById('rank-3')?.value;
+  const amount=parseInt(document.getElementById('bet-amount')?.value)||0;
+  if(new Set([r1,r2,r3]).size!==3){showErr('bet-error','Each position must be a different player');return;}
+  const p=getPlayer(S.currentUser);
+  const bal=(p?.balance)||0;
+  if(!amount||amount<=0){showErr('bet-error','Enter a valid amount');return;}
+  if(amount>bal){showErr('bet-error',`Not enough balance (have ${fmt(bal)} CC)`);return;}
+  const pick=`1:${r1}|2:${r2}|3:${r3}`;
+  const batch=writeBatch(_db);
+  const betId='b'+Date.now();
+  batch.set(doc(_db,'bets',betId),{matchId,playerName:S.currentUser,pick,amount,result:null,betType:'ranked',stakeInBalance:false});
+  if(p?.id){
+    const rBetBal=Math.round(bal-amount);
+    batch.update(doc(_db,'players',p.id),{
+      balance:  rBetBal,
+      netWorth: rBetBal-(p.debt||0),
+    });
+  }
+  await batch.commit();
+  closeModal('bet-modal');
+}
+
+// ── BET MODAL ─────────────────────────────────
 function openBetModal(matchId){
   const m=S.matches.find(x=>x.id===matchId);if(!m)return;
-  const coins=getCoins(S.currentUser);
+  if(m.matchType==='ranked'){openRankedBetModal(matchId);return;}
+  const spendable=getSpendable(S.currentUser);
   const user=norm(S.currentUser);
-
-  // Competitor integrity: if the player is in this match,
-  // they may only bet on themselves — not their opponent.
-  const isP1 = user===norm(m.p1);
-  const isP2 = user===norm(m.p2);
-  const isCompetitor = isP1||isP2;
-  const forbiddenPick = isP1?m.p2:isP2?m.p1:null; // opponent's name, or null if spectator
-
-  // Build pick options — hide forbidden side for competitors
+  const isP1=user===norm(m.p1), isP2=user===norm(m.p2);
+  const forbiddenPick=isP1?m.p2:isP2?m.p1:null;
   let pickOpts='';
   if(!forbiddenPick){
     pickOpts=`<option value="${m.p1}">${m.p1}</option><option value="${m.p2}">${m.p2}</option>`;
@@ -1111,22 +900,10 @@ function openBetModal(matchId){
     const allowed=isP1?m.p1:m.p2;
     pickOpts=`<option value="${allowed}">${allowed}</option>`;
   }
-
-  // Summary of prior bets on this match (excluding voided)
   const priorBets=S.bets.filter(b=>b.matchId===matchId&&norm(b.playerName)===user&&b.result!=='voided');
   const priorHtml=priorBets.length
-    ? `<div class="alert alert-gold" style="margin-bottom:12px;font-size:12px">
-        <strong>Your existing bets:</strong><br>
-        ${priorBets.map(b=>`${fmt(b.amount)} on ${b.pick}${b.result===null?' (pending)':''}`).join('<br>')}
-       </div>`
-    : '';
-
-  const competitorNote=isCompetitor
-    ? `<div class="alert alert-info" style="margin-bottom:12px;font-size:12px">
-         You are competing in this match. You may only bet on yourself.
-       </div>`
-    : '';
-
+    ?`<div class="alert alert-gold" style="margin-bottom:12px;font-size:12px"><strong>Your existing bets:</strong><br>${priorBets.map(b=>`${fmt(b.amount)} on ${b.pick}${b.result===null?' (pending)':''}`).join('<br>')}</div>`:'';
+  const competitorNote=(isP1||isP2)?`<div class="alert alert-info" style="margin-bottom:12px;font-size:12px">You are competing in this match. You may only bet on yourself.</div>`:'';
   document.getElementById('bet-modal-content').innerHTML=`
     <div style="display:flex;align-items:center;justify-content:center;gap:16px;background:var(--bg3);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px">
       <div style="text-align:center;flex:1"><div class="match-player-name">${m.p1}</div></div>
@@ -1134,10 +911,9 @@ function openBetModal(matchId){
       <div style="text-align:center;flex:1"><div class="match-player-name">${m.p2}</div></div>
     </div>
     ${competitorNote}${priorHtml}
-    <div class="fg"><label class="lbl">Pick winner</label>
-      <select id="bet-pick">${pickOpts}</select></div>
-    <div class="fg"><label class="lbl">Amount — you have ${fmt(coins)} coins available</label>
-      <input type="number" id="bet-amount" min="1" max="${Math.max(coins,0)}" placeholder="Amount..." /></div>
+    <div class="fg"><label class="lbl">Pick winner</label><select id="bet-pick">${pickOpts}</select></div>
+    <div class="fg"><label class="lbl">Amount — balance: ${fmt(getSpendable(S.currentUser))} CC</label>
+      <input type="number" id="bet-amount" min="1" max="${Math.max(getSpendable(S.currentUser),0)}" placeholder="Amount..." /></div>
     <div class="alert alert-gold" style="margin-bottom:14px">Win = 2× your bet. Lose = lose your stake.</div>
     <div id="bet-error" class="alert alert-danger hidden"></div>
     <div class="btn-row">
@@ -1146,110 +922,350 @@ function openBetModal(matchId){
     </div>`;
   document.getElementById('bet-modal').classList.remove('hidden');
 }
+
 async function submitBet(matchId){
   const pick=document.getElementById('bet-pick').value;
   const amount=parseInt(document.getElementById('bet-amount').value);
-  const coins=getCoins(S.currentUser);
+  const p_check=getPlayer(S.currentUser);
+  const curBal=(p_check?.balance)||0;
   if(!amount||amount<=0){showErr('bet-error','Enter a valid amount');return;}
-  if(amount>coins){showErr('bet-error','Not enough Cat Coins');return;}
-
-  // Server-side competitor integrity guard
+  if(amount>curBal){showErr('bet-error',`Not enough balance (have ${fmt(curBal)} CC)`);return;}
   const m=S.matches.find(x=>x.id===matchId);
   if(m){
     const user=norm(S.currentUser);
-    const isP1=user===norm(m.p1), isP2=user===norm(m.p2);
-    if(isP1&&norm(pick)===norm(m.p2)){showErr('bet-error','You cannot bet on your opponent');return;}
-    if(isP2&&norm(pick)===norm(m.p1)){showErr('bet-error','You cannot bet on your opponent');return;}
+    if(user===norm(m.p1)&&norm(pick)===norm(m.p2)){showErr('bet-error','You cannot bet on your opponent');return;}
+    if(user===norm(m.p2)&&norm(pick)===norm(m.p1)){showErr('bet-error','You cannot bet on your opponent');return;}
   }
-
-  // Prevent double-submit
   const btn=document.querySelector('#bet-modal .btn-gold:last-child');
   if(btn){btn.disabled=true;btn.textContent='Placing...';}
   await _fsSet('bets','b'+Date.now(),{matchId,playerName:S.currentUser,pick,amount,result:null});
   closeModal('bet-modal');
 }
 
-// ── ADMIN: MATCHES ──────────────────────────
+// ── PLAYER: CAT BANK ─────────────────────────
+function renderPlayerBank(){
+  const el=document.getElementById('p-bank');if(!el)return;
+  const n=S.currentUser;
+  const p=getPlayer(n);if(!p){el.innerHTML='<div class="alert alert-info">Loading...</div>';return;}
+  const loanPrincipal=p.loanPrincipal||0;
+  const interestOwed=p.interestOwed||0;
+  const debt=p.debt||0;
+  const maxDebt=S.maxDebt||0;
+  const canBorrow=Math.max(0,maxDebt-loanPrincipal); // cap on principal borrowed, not total debt
+  if(!S.loanOpen){
+    el.innerHTML=`<div class="card">
+      <div style="font-size:20px;margin-bottom:8px">🏦</div>
+      <div style="font-weight:500;margin-bottom:6px">Cat Bank</div>
+      <div class="alert alert-info">The bank is currently closed. Check back when it opens!</div>
+    </div>`;
+    return;
+  }
+  if(maxDebt===0){
+    el.innerHTML=`<div class="card">
+      <div style="font-size:20px;margin-bottom:8px">🏦</div>
+      <div style="font-weight:500;margin-bottom:6px">Cat Bank</div>
+      <div class="alert alert-info">No borrowing rounds have been configured yet by admin.</div>
+    </div>`;
+    return;
+  }
+  el.innerHTML=`<div class="card">
+    <div style="font-size:20px;margin-bottom:4px">🏦</div>
+    <div style="font-weight:500;margin-bottom:4px">Cat Bank — Loans</div>
+    <div style="font-size:12px;color:var(--text-dim);margin-bottom:16px">Borrowing increases your balance but not your net worth. Debt is deducted from wealth ranking.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+      <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:10px;text-align:center">
+        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total Owed</div>
+        <div style="font-family:'Cinzel',serif;font-size:18px;color:${debt>0?'var(--red)':'var(--text-dim)'}">${debt>0?'−'+fmt(debt):'—'}</div>
+        <div style="font-size:10px;color:var(--text-dim);margin-top:2px">${loanPrincipal>0?'principal '+fmt(loanPrincipal)+' + 20% interest':''}</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:10px;text-align:center">
+        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Cap Used</div>
+        <div style="font-family:'Cinzel',serif;font-size:18px;color:var(--text-dim)">${fmt(loanPrincipal)} / ${fmt(maxDebt)}</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:10px;text-align:center">
+        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Can Borrow</div>
+        <div style="font-family:'Cinzel',serif;font-size:18px;color:${canBorrow>0?'var(--green)':'var(--red)'}">${fmt(canBorrow)} CC</div>
+      </div>
+    </div>
+    ${canBorrow>0?`
+    <div class="fg"><label class="lbl">Amount to borrow (max ${fmt(canBorrow)} CC)</label>
+      <input type="number" id="loan-amount" min="1" max="${canBorrow}" placeholder="Amount..." />
+    </div>
+    <div class="alert alert-gold" style="margin-bottom:12px;font-size:12px">
+      Loan increases your <strong>balance</strong>. Your net worth decreases by the 20% interest owed.
+    </div>
+    <div id="loan-error" class="alert alert-danger hidden"></div>
+    <button class="btn btn-gold btn-full" onclick="takeLoan()">Take Loan</button>`
+    :`<div class="alert alert-danger">You have reached the borrowing cap of ${fmt(maxDebt)} CC.</div>`}
+  </div>`;
+}
+
+async function takeLoan(){
+  const n=S.currentUser;
+  const p=getPlayer(n);if(!p)return;
+  const amount=parseInt(document.getElementById('loan-amount')?.value)||0;
+  const loanPrincipal=p.loanPrincipal||0;
+  const canBorrow=Math.max(0,(S.maxDebt||0)-loanPrincipal);
+  if(!amount||amount<=0){showErr('loan-error','Enter a valid amount');return;}
+  if(amount>canBorrow){showErr('loan-error',`Max borrowable is ${fmt(canBorrow)} CC`);return;}
+  // Loan: balance += principal (more to spend)
+  // loanPrincipal += principal (tracks cap usage)
+  // debt += principal * 1.2 (full repayment incl. 20% interest)
+  // netWorth = newBalance - newDebt (goes DOWN by the interest cost)
+  const newBalance       = Math.round((p.balance||0)+amount);
+  const newLoanPrincipal = Math.round(loanPrincipal+amount);
+  const newInterestOwed  = Math.round(newLoanPrincipal*0.2);
+  const newDebt          = newLoanPrincipal + newInterestOwed;
+  const newNetWorth      = newBalance - newDebt;
+  await _fsUpd('players',p.id,{
+    balance:       newBalance,
+    loanPrincipal: newLoanPrincipal,
+    interestOwed:  newInterestOwed,
+    debt:          newDebt,
+    netWorth:      newNetWorth,
+  });
+  renderPlayerBank();
+  refreshStats();
+}
+
+// ── ADMIN: MATCHES ────────────────────────────
 function renderAMatches(){
-  const rounds=[...new Set(S.matches.map(m=>m.roundLabel))];
   let html=`<div style="margin-bottom:14px"><button class="btn btn-gold btn-sm" onclick="openAddMatchModal()">+ Add Match</button></div>`;
-  rounds.forEach(rl=>{
-    let inner='';
-    S.matches.filter(m=>m.roundLabel===rl).forEach(m=>{
-      const bc=S.bets.filter(b=>b.matchId===m.id).length;
-      const p1p=S.bets.filter(b=>b.matchId===m.id&&norm(b.pick)===norm(m.p1)).reduce((s,b)=>s+b.amount,0);
-      const p2p=S.bets.filter(b=>b.matchId===m.id&&norm(b.pick)===norm(m.p2)).reduce((s,b)=>s+b.amount,0);
-      const isTBD=m.p1==='TBD'&&m.p2==='TBD';
-      inner+=`<div class="match-card">
-        <div class="row-between" style="margin-bottom:8px">
-          <div class="row" style="gap:6px">
-            <span style="font-size:11px;color:var(--gold)">${m.id}</span>
-            ${m.day?`<span style="font-size:11px;color:var(--text-dim)">${m.day}${m.time?' · '+m.time:''}</span>`:''}
-          </div>
-          <span class="badge ${m.status==='done'?'badge-done':m.bettingOpen?'badge-open':'badge-closed'}">${m.status==='done'?'Finished':m.bettingOpen?'Betting open':'Betting closed'}</span>
+  if(!S.matches.length){html+='<div class="alert alert-info">No matches yet. Add semifinals matchups above.</div>';}
+  S.matches.forEach(m=>{
+    const bc=S.bets.filter(b=>b.matchId===m.id).length;
+    const p1p=S.bets.filter(b=>b.matchId===m.id&&norm(b.pick)===norm(m.p1)&&b.result!=='voided').reduce((s,b)=>s+b.amount,0);
+    const p2p=S.bets.filter(b=>b.matchId===m.id&&norm(b.pick)===norm(m.p2)&&b.result!=='voided').reduce((s,b)=>s+b.amount,0);
+    html+=`<div class="match-card">
+      <div class="row-between" style="margin-bottom:8px">
+        <div class="row" style="gap:6px">
+          <span style="font-size:11px;color:var(--gold)">${m.id}</span>
+          ${m.day?`<span style="font-size:11px;color:var(--text-dim)">${m.day}${m.time?' · '+m.time:''}</span>`:''}
         </div>
-        <div class="match-vs" style="margin:8px 0">
-          <div class="match-player"><div class="match-player-name ${m.winner===m.p1?'winner':''}">${m.p1}${m.winner===m.p1?' ✦':''}</div><div class="match-pot">${fmt(p1p)} coins</div></div>
+        <span class="badge ${m.status==='done'?'badge-done':m.bettingOpen?'badge-open':'badge-closed'}">${m.status==='done'?'Finished':m.bettingOpen?'Betting open':'Betting closed'}</span>
+      </div>
+      ${(()=>{
+        const isR=m.matchType==='ranked';
+        const cs=(m.contestants||m.p1||'').split(',').map(s=>s.trim()).filter(Boolean);
+        const pot=isR?S.bets.filter(b=>b.matchId===m.id&&b.result!=='voided').reduce((s,b)=>s+b.amount,0):(p1p+p2p);
+        if(isR) return `<div style="padding:6px 0 8px">
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">${cs.map(n=>`<span style="background:var(--bg3);border-radius:var(--radius-sm);padding:4px 10px;font-size:12px;font-family:'Cinzel',serif">${n}</span>`).join('')}</div>
+          <div style="font-size:11px;color:var(--text-dim)">${bc} bet(s) · pot: ${fmt(pot)} CC</div>
+          ${m.winner&&m.winner!=='Walkover'?`<div class="alert alert-success" style="margin-top:6px;padding:5px 10px;font-size:12px">Result: ${m.winner.split('|').map(r=>{const[p,n]=r.split(':');const me=['','🥇','🥈','🥉'];return me[parseInt(p)]+' '+n;}).join(' · ')}</div>`:''}
+        </div>`;
+        return `<div class="match-vs" style="margin:8px 0">
+          <div class="match-player"><div class="match-player-name ${m.winner===m.p1?'winner':''}">${m.p1}${m.winner===m.p1?' ✦':''}</div><div class="match-pot">${fmt(p1p)} CC</div></div>
           <div class="vs-sep">VS</div>
-          <div class="match-player"><div class="match-player-name ${m.winner===m.p2?'winner':''}">${m.p2}${m.winner===m.p2?' ✦':''}</div><div class="match-pot">${fmt(p2p)} coins</div></div>
+          <div class="match-player"><div class="match-player-name ${m.winner===m.p2?'winner':''}">${m.p2}${m.winner===m.p2?' ✦':''}</div><div class="match-pot">${fmt(p2p)} CC</div></div>
         </div>
-        <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">${bc} bet(s) · pot: ${fmt(p1p+p2p)}</div>
-        ${m.winner?`<div class="alert alert-success" style="margin-bottom:8px;padding:6px 12px">Winner: <strong>${m.winner}</strong></div>`:''}
-        <div class="btn-row">
-          ${!isTBD&&m.status!=='done'&&m.bettingOpen?`<button class="btn btn-sm btn-danger" onclick="toggleBetting('${m.id}',false)">Close betting</button>`:''}
-          ${!isTBD&&m.status!=='done'&&!m.bettingOpen?`<button class="btn btn-sm btn-success" onclick="toggleBetting('${m.id}',true)">Open betting</button>`:''}
-          ${!isTBD&&m.status!=='done'?`
-            <button class="btn btn-sm btn-success" onclick="declareWinner('${m.id}','${m.p1}')">✦ ${m.p1} wins</button>
-            <button class="btn btn-sm btn-success" onclick="declareWinner('${m.id}','${m.p2}')">✦ ${m.p2} wins</button>
-            <button class="btn btn-sm" onclick="declareWalkover('${m.id}')">Walkover</button>`:''}
-          <button class="btn btn-sm" onclick="editMatch('${m.id}')">Edit</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteMatch('${m.id}')">Delete</button>
-        </div>
-      </div>`;
-    });
-    const isDone=S.matches.filter(m=>m.roundLabel===rl).every(m=>m.status==='done');
-    html+=roundSection(rl,inner,isDone);
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">${bc} bet(s) · pot: ${fmt(pot)} CC</div>
+        ${m.winner&&m.winner!=='Walkover'?`<div class="alert alert-success" style="margin-bottom:8px;padding:6px 12px">Winner: <strong>${m.winner}</strong></div>`:''}`;
+      })()}
+      <div class="btn-row">
+        ${m.status!=='done'&&m.bettingOpen?`<button class="btn btn-sm btn-danger" onclick="toggleBetting('${m.id}',false)">Close betting</button>`:''}
+        ${m.status!=='done'&&!m.bettingOpen?`<button class="btn btn-sm btn-success" onclick="toggleBetting('${m.id}',true)">Open betting</button>`:''}
+        ${m.status!=='done'&&m.matchType!=='ranked'?`
+          <button class="btn btn-sm btn-success" onclick="declareWinner('${m.id}','${m.p1}')">✦ ${m.p1} wins</button>
+          <button class="btn btn-sm btn-success" onclick="declareWinner('${m.id}','${m.p2}')">✦ ${m.p2} wins</button>
+          <button class="btn btn-sm" onclick="declareWalkover('${m.id}')">Walkover</button>`:''}
+        ${m.status!=='done'&&m.matchType==='ranked'?`
+          <button class="btn btn-sm btn-success" onclick="openRankedResultModal('${m.id}')">✦ Set ranked result</button>
+          <button class="btn btn-sm" onclick="declareWalkover('${m.id}')">Walkover</button>`:''}
+        ${m.status==='done'?`<button class="btn btn-sm btn-danger" onclick="reopenMatch('${m.id}')">↩ Reopen</button>`:''}
+        <button class="btn btn-sm" onclick="editMatch('${m.id}')">Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteMatch('${m.id}')">Delete</button>
+      </div>
+    </div>`;
   });
   document.getElementById('a-matches').innerHTML=html;
 }
+
 async function toggleBetting(id,open){await _fsUpd('matches',id,{bettingOpen:open});}
+
+function openRankedResultModal(matchId){
+  const m=S.matches.find(x=>x.id===matchId);if(!m)return;
+  const contestants=(m.contestants||m.p1||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const opts=contestants.map(n=>`<option value="${n}">${n}</option>`).join('');
+  document.getElementById('add-match-content').innerHTML=`
+    <div class="modal-title" style="margin-bottom:12px">Set Ranked Result — ${matchId}</div>
+    <div class="fg"><label class="lbl">🥇 1st place</label><select id="res-1">${opts}</select></div>
+    <div class="fg"><label class="lbl">🥈 2nd place</label><select id="res-2">${opts}</select></div>
+    <div class="fg"><label class="lbl">🥉 3rd place</label><select id="res-3">${opts}</select></div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn" style="flex:1" onclick="closeModal('add-match-modal')">Cancel</button>
+      <button class="btn btn-gold" style="flex:1" onclick="declareRankedResult('${matchId}')">Confirm Results</button>
+    </div>`;
+  document.getElementById('add-match-modal').classList.remove('hidden');
+}
+
+async function declareRankedResult(id){
+  const r1=document.getElementById('res-1')?.value;
+  const r2=document.getElementById('res-2')?.value;
+  const r3=document.getElementById('res-3')?.value;
+  if(new Set([r1,r2,r3]).size!==3){alert('Each position must be different');return;}
+  const result=`1:${r1}|2:${r2}|3:${r3}`;
+  const batch=writeBatch(_db);
+  const rankedBets=S.bets.filter(b=>b.matchId===id&&b.result===null&&b.betType==='ranked');
+  rankedBets.forEach(b=>{
+    // Parse player's pick and score it
+    const picks={};
+    (b.pick||'').split('|').forEach(p=>{const[pos,name]=p.split(':');picks[pos]=name;});
+    const actual={1:r1,2:r2,3:r3};
+    let correct=0;
+    [1,2,3].forEach(pos=>{if(picks[String(pos)]===actual[pos])correct++;});
+    const mult=correct===3?6:0;  // All 3 exact placements required for 6× payout
+    batch.update(doc(_db,'bets',b.id),{result:mult>0?'won':'lost',rankedResult:result,correctPositions:correct});
+    if(mult>0){
+      const p=getPlayer(b.playerName);
+      if(p?.id){
+        const rBal=Math.round((p.balance||0)+b.amount*mult);
+      batch.update(doc(_db,'players',p.id),{
+          balance:  rBal,
+          netWorth: rBal-(p.debt||0),
+        });
+      }
+    }
+  });
+  batch.update(doc(_db,'matches',id),{winner:result,status:'done',bettingOpen:false});
+  await batch.commit();
+  closeModal('add-match-modal');
+}
+
 async function declareWinner(id,winner){
-  if(!confirm(`Declare ${winner} as winner? This settles all bets.`))return;
-  await _fsUpd('matches',id,{winner,status:'done',bettingOpen:false});
-  const bb=writeBatch(_db);
-  S.bets.filter(b=>b.matchId===id&&b.result===null).forEach(b=>{
-    bb.update(doc(_db,'bets',b.id),{result:norm(b.pick)===norm(winner)?'won':'lost'});
+  if(!confirm(`Declare ${winner} as winner? This settles all bets and updates balances.`))return;
+  // Settle bets and update player balances atomically
+  const batch=writeBatch(_db);
+  const matchBets=S.bets.filter(b=>b.matchId===id&&b.result===null);
+
+  // Tally net effect per player from this match
+  const delta={};
+  matchBets.forEach(b=>{
+    const res=norm(b.pick)===norm(winner)?'won':'lost';
+    batch.update(doc(_db,'bets',b.id),{result:res});
+    const n=norm(b.playerName);
+    if(!delta[n]) delta[n]={name:b.playerName,net:0};
+    if(res==='won') delta[n].net+=b.amount*2; // return stake + prize = 2× (stake gone at placement)
+    // lost: nothing to do — stake already gone at placement
   });
-  await bb.commit();
+
+  // Apply winnings back to player available balance
+  for(const [n,d] of Object.entries(delta)){
+    if(d.net>0){
+      const p=getPlayer(d.name);
+      if(p&&p.id){
+        const newBal=Math.round((p.balance||0)+d.net);
+        const newNW=newBal-(p.debt||0);
+        batch.update(doc(_db,'players',p.id),{balance:newBal,netWorth:newNW});
+      }
+    }
+  }
+  batch.update(doc(_db,'matches',id),{winner,status:'done',bettingOpen:false});
+  await batch.commit();
 }
+
 async function declareWalkover(id){
-  if(!confirm('Mark this match as walkover? All bets will be refunded.'))return;
-  await _fsUpd('matches',id,{status:'done',bettingOpen:false,winner:'Walkover'});
-  const bb=writeBatch(_db);
-  S.bets.filter(b=>b.matchId===id&&b.result===null).forEach(b=>{
-    bb.update(doc(_db,'bets',b.id),{result:'walkover'});
+  if(!confirm('Mark as walkover? All bets refunded and stakes returned.'))return;
+  const batch=writeBatch(_db);
+  const matchBets=S.bets.filter(b=>b.matchId===id&&b.result===null);
+  // Refund stakes
+  const refunds={};
+  matchBets.forEach(b=>{
+    batch.update(doc(_db,'bets',b.id),{result:'walkover'});
+    const n=norm(b.playerName);
+    if(!refunds[n]) refunds[n]={name:b.playerName,amount:0};
+    refunds[n].amount+=b.amount;
   });
-  await bb.commit();
-  // onSnapshot will fire and refresh the view automatically
+  for(const [n,r] of Object.entries(refunds)){
+    const p=getPlayer(r.name);
+    if(p&&p.id){
+      const newBal=Math.round((p.balance||0)+r.amount);
+      const newNW=newBal-(p.debt||0);
+      batch.update(doc(_db,'players',p.id),{balance:newBal,netWorth:newNW});
+    }
+  }
+  batch.update(doc(_db,'matches',id),{status:'done',bettingOpen:false,winner:'Walkover'});
+  await batch.commit();
 }
+
+async function reopenMatch(id){
+  if(!confirm('Reopen this match and reverse all settlements? Bets restored to pending.'))return;
+  const m=S.matches.find(x=>x.id===id);if(!m)return;
+  const batch=writeBatch(_db);
+  const settledBets=S.bets.filter(b=>b.matchId===id&&(b.result==='won'||b.result==='lost'));
+  const reversals={};
+  settledBets.forEach(b=>{
+    const n=norm(b.playerName);
+    if(!reversals[n]) reversals[n]={name:b.playerName,delta:0};
+    if(b.result==='won'){
+      // Reverse FULL payout: standard = amount*2, ranked = amount*mult stored on bet
+      const paidOut = b.betType==='ranked'
+        ? b.amount*6  // ranked always paid 6× (all-or-nothing)
+        : b.amount*2;
+      reversals[n].delta -= paidOut;  // take back exactly what was paid
+      batch.update(doc(_db,'bets',b.id),{result:null,settledWinner:null,rankedResult:null});
+    } else {
+      // LOST bets: stake already gone at placement, settlement did nothing → nothing to reverse
+      batch.update(doc(_db,'bets',b.id),{result:null,settledWinner:null});
+    }
+  });
+  for(const [,r] of Object.entries(reversals)){
+    if(r.delta!==0){
+      const p=getPlayer(r.name);if(!p?.id)continue;
+      batch.update(doc(_db,'players',p.id),{
+        balance:  Math.round((p.balance||0)+r.delta),
+        netWorth: Math.round((p.balance||0)+r.delta)-(p.debt||0),
+      });
+    }
+  }
+  batch.update(doc(_db,'matches',id),{winner:null,status:'pending',bettingOpen:false,settledAt:null});
+  await batch.commit();
+}
+
 async function deleteMatch(id){
   if(!confirm('Delete this match and its bets?'))return;
   await _fsDel('matches',id);
-  const bb=writeBatch(_db);
-  S.bets.filter(b=>b.matchId===id).forEach(b=>bb.delete(doc(_db,'bets',b.id)));
-  await bb.commit();
+  const batch=writeBatch(_db);
+  S.bets.filter(b=>b.matchId===id).forEach(b=>batch.delete(doc(_db,'bets',b.id)));
+  await batch.commit();
 }
+
+function toggleMatchTypeFields(){
+  const t=document.getElementById('nm-type')?.value;
+  const sf=document.getElementById('nm-standard-fields');
+  const rf=document.getElementById('nm-ranked-fields');
+  if(sf) sf.style.display=t==='ranked'?'none':'';
+  if(rf) rf.style.display=t==='ranked'?'':'none';
+}
+
 function openAddMatchModal(){
   document.getElementById('add-match-title').textContent='Add Match';
-  const rOpts=S.loanRounds.map(r=>`<option value="${r.round}">${r.label}</option>`).join('');
+  const pOpts=S.players.sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${p.name}">${p.name}</option>`).join('');
   document.getElementById('add-match-content').innerHTML=`
-    <div class="fg"><label class="lbl">Round</label><select id="nm-round">${rOpts}</select></div>
-    <div class="fg"><label class="lbl">Match ID (e.g. M21)</label><input type="text" id="nm-id" placeholder="M21" /></div>
-    <div class="fg"><label class="lbl">Player 1</label><input type="text" id="nm-p1" placeholder="Name..." /></div>
-    <div class="fg"><label class="lbl">Player 2</label><input type="text" id="nm-p2" placeholder="Name..." /></div>
-    <div class="fg"><label class="lbl">Day</label><input type="text" id="nm-day" placeholder="e.g. WED" /></div>
-    <div class="fg"><label class="lbl">Time</label><input type="text" id="nm-time" placeholder="e.g. 20:00" /></div>
-    <div class="fg"><label class="lbl">Betting</label><select id="nm-betting"><option value="true">Open now</option><option value="false">Closed</option></select></div>
+    <div class="fg"><label class="lbl">Match ID (e.g. F1, WC1)</label><input type="text" id="nm-id" placeholder="F1" /></div>
+    <div class="fg"><label class="lbl">Round label</label><input type="text" id="nm-round" placeholder="Finals" value="Finals" /></div>
+    <div class="fg"><label class="lbl">Match type</label>
+      <select id="nm-type" onchange="toggleMatchTypeFields()">
+        <option value="standard">Standard (2 players, pick winner, 2×)</option>
+        <option value="ranked">Ranked Finals (up to 4 players, pick order, 2×/4×/6×)</option>
+      </select>
+    </div>
+    <div id="nm-standard-fields">
+      <div class="fg"><label class="lbl">Player 1</label><select id="nm-p1"><option value="">— Select —</option>${pOpts}</select></div>
+      <div class="fg"><label class="lbl">Player 2</label><select id="nm-p2"><option value="">— Select —</option>${pOpts}</select></div>
+    </div>
+    <div id="nm-ranked-fields" style="display:none">
+      <div class="fg"><label class="lbl">Contestants (select up to 4 players)</label>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <select id="nm-c1"><option value="">— Player 1 —</option>${pOpts}</select>
+          <select id="nm-c2"><option value="">— Player 2 —</option>${pOpts}</select>
+          <select id="nm-c3"><option value="">— Player 3 (optional) —</option><option value="">— none —</option>${pOpts}</select>
+          <select id="nm-c4"><option value="">— Player 4 (optional) —</option><option value="">— none —</option>${pOpts}</select>
+        </div>
+      </div>
+    </div>
+    <div class="fg"><label class="lbl">Day</label><input type="text" id="nm-day" placeholder="Monday" /></div>
+    <div class="fg"><label class="lbl">Time</label><input type="text" id="nm-time" placeholder="20:00" /></div>
+    <div class="fg"><label class="lbl">Betting</label><select id="nm-betting"><option value="false">Closed</option><option value="true">Open now</option></select></div>
     <div id="add-match-error" class="alert alert-danger hidden"></div>
     <div class="btn-row" style="margin-top:4px">
       <button class="btn" style="flex:1" onclick="closeModal('add-match-modal')">Cancel</button>
@@ -1257,18 +1273,19 @@ function openAddMatchModal(){
     </div>`;
   document.getElementById('add-match-modal').classList.remove('hidden');
 }
+
 function editMatch(id){
   const m=S.matches.find(x=>x.id===id);if(!m)return;
   document.getElementById('add-match-title').textContent='Edit Match';
-  const rOpts=S.loanRounds.map(r=>`<option value="${r.round}" ${r.round===m.round?'selected':''}>${r.label}</option>`).join('');
+  const pOpts=p=>S.players.sort((a,b)=>a.name.localeCompare(b.name)).map(x=>`<option value="${x.name}" ${x.name===p?'selected':''}>${x.name}</option>`).join('');
   document.getElementById('add-match-content').innerHTML=`
-    <div class="fg"><label class="lbl">Round</label><select id="nm-round">${rOpts}</select></div>
     <div class="fg"><label class="lbl">Match ID</label><input type="text" id="nm-id" value="${m.id}" /></div>
-    <div class="fg"><label class="lbl">Player 1</label><input type="text" id="nm-p1" value="${m.p1}" /></div>
-    <div class="fg"><label class="lbl">Player 2</label><input type="text" id="nm-p2" value="${m.p2}" /></div>
+    <div class="fg"><label class="lbl">Round label</label><input type="text" id="nm-round" value="${m.roundLabel||''}" /></div>
+    <div class="fg"><label class="lbl">Player 1</label><select id="nm-p1"><option value="">— Select —</option>${pOpts(m.p1)}</select></div>
+    <div class="fg"><label class="lbl">Player 2</label><select id="nm-p2"><option value="">— Select —</option>${pOpts(m.p2)}</select></div>
     <div class="fg"><label class="lbl">Day</label><input type="text" id="nm-day" value="${m.day||''}" /></div>
     <div class="fg"><label class="lbl">Time</label><input type="text" id="nm-time" value="${m.time||''}" /></div>
-    <div class="fg"><label class="lbl">Betting</label><select id="nm-betting"><option value="true" ${m.bettingOpen?'selected':''}>Open</option><option value="false" ${!m.bettingOpen?'selected':''}>Closed</option></select></div>
+    <div class="fg"><label class="lbl">Betting</label><select id="nm-betting"><option value="false" ${!m.bettingOpen?'selected':''}>Closed</option><option value="true" ${m.bettingOpen?'selected':''}>Open</option></select></div>
     <div id="add-match-error" class="alert alert-danger hidden"></div>
     <div class="btn-row" style="margin-top:4px">
       <button class="btn" style="flex:1" onclick="closeModal('add-match-modal')">Cancel</button>
@@ -1276,296 +1293,537 @@ function editMatch(id){
     </div>`;
   document.getElementById('add-match-modal').classList.remove('hidden');
 }
+
 async function submitAddMatch(){
-  const rn=parseInt(document.getElementById('nm-round').value);
-  const lr=S.loanRounds.find(r=>r.round===rn);
   const id=document.getElementById('nm-id').value.trim();
-  const p1=document.getElementById('nm-p1').value.trim();
-  const p2=document.getElementById('nm-p2').value.trim();
-  if(!p1||!p2){showErr('add-match-error','Enter both player names');return;}
+  const p1=document.getElementById('nm-p1').value;
+  const p2=document.getElementById('nm-p2').value;
+  const roundLabel=document.getElementById('nm-round').value.trim()||'Semifinals';
+  const matchTypeCheck=document.getElementById('nm-type')?.value||'standard';
+  if(matchTypeCheck!=='ranked'&&(!p1||!p2)){showErr('add-match-error','Select both players');return;}
   if(!id){showErr('add-match-error','Enter a match ID');return;}
   if(S.matches.find(m=>m.id===id)){showErr('add-match-error','Match ID already exists');return;}
-  await _fsSet('matches',id,{id,round:rn,roundLabel:lr.label,p1,p2,status:'pending',winner:null,
+  const matchType=document.getElementById('nm-type')?.value||'standard';
+  let p1final=p1, p2final=p2, contestants=null;
+  if(matchType==='ranked'){
+    const c1=document.getElementById('nm-c1')?.value||'';
+    const c2=document.getElementById('nm-c2')?.value||'';
+    const c3=document.getElementById('nm-c3')?.value||'';
+    const c4=document.getElementById('nm-c4')?.value||'';
+    const cs=[c1,c2,c3,c4].filter(Boolean);
+    if(cs.length<2){showErr('add-match-error','Select at least 2 contestants for ranked match');return;}
+    contestants=cs.join(',');
+    p1final=cs[0]; p2final=cs[1]||cs[0]; // p1/p2 used for display fallback
+  }
+  await _fsSet('matches',id,{id,round:roundLabel,roundLabel,p1:p1final,p2:p2final,contestants,status:'pending',winner:null,matchType,
     bettingOpen:document.getElementById('nm-betting').value==='true',
     day:document.getElementById('nm-day').value.trim(),
     time:document.getElementById('nm-time').value.trim()});
   closeModal('add-match-modal');
 }
+
 async function submitEditMatch(origId){
-  const m=S.matches.find(x=>x.id===origId);if(!m)return;
-  const rn=parseInt(document.getElementById('nm-round').value);
-  const lr=S.loanRounds.find(r=>r.round===rn);
-  m.id=document.getElementById('nm-id').value.trim()||origId;
-  await _fsUpd('matches',origId,{round:rn,roundLabel:lr?lr.label:'Round '+rn,
-    p1:document.getElementById('nm-p1').value.trim(),
-    p2:document.getElementById('nm-p2').value.trim(),
+  await _fsUpd('matches',origId,{
+    roundLabel:document.getElementById('nm-round').value.trim(),
+    p1:document.getElementById('nm-p1').value,
+    p2:document.getElementById('nm-p2').value,
     day:document.getElementById('nm-day').value.trim(),
     time:document.getElementById('nm-time').value.trim(),
     bettingOpen:document.getElementById('nm-betting').value==='true'});
   closeModal('add-match-modal');
 }
 
-// ── ADMIN: PLAYERS ──────────────────────────
+// ── ADMIN: PLAYERS ────────────────────────────
 function renderAPlayers(){
   const sorted=[...S.players].sort((a,b)=>a.name.localeCompare(b.name));
   let html=`<div style="margin-bottom:14px"><button class="btn btn-gold btn-sm" onclick="document.getElementById('add-player-modal').classList.remove('hidden')">+ Add Player</button></div>
   <div class="tbl-wrap"><table><thead><tr>
     <th>Player</th><th>Status</th>
-    <th style="text-align:right">Available</th>
-    <th style="text-align:right">Pending</th>
-    <th style="text-align:right">Debt</th>
+    <th style="text-align:right">Balance</th>
+    <th style="text-align:right">Loan Taken</th>
+    <th style="text-align:right">Interest</th>
+    <th style="text-align:right">Total Debt</th>
     <th style="text-align:right">Net Worth</th>
     <th></th>
   </tr></thead><tbody>`;
   sorted.forEach(p=>{
-    const coins   = getCoins(p.name);
-    const pending = getPendingStakes(p.name);
-    const debt    = getDebt(p.name);
-    const worth   = getNetWorth(p.name);
+    const worth=p.netWorth||0;
     html+=`<tr>
       <td><div class="row" style="gap:8px"><div class="avatar" style="${avStyle(p.name)}">${initials(p.name)}</div><span style="font-weight:500">${p.name}</span></div></td>
       <td><select style="width:auto;font-size:12px;padding:4px 8px" onchange="changeStatus('${p.id}',this.value)">
         <option ${p.status==='active'?'selected':''} value="active">Active</option>
-        <option ${p.status==='eliminated'?'selected':''} value="eliminated">Eliminated</option>
         <option ${p.status==='spectator'?'selected':''} value="spectator">Spectator</option>
+        <option ${p.status==='eliminated'?'selected':''} value="eliminated">Eliminated</option>
       </select></td>
-      <td style="text-align:right;color:${coins<0?'var(--red)':'inherit'}">${fmt(coins)}</td>
-      <td style="text-align:right;color:${pending>0?'var(--gold)':'var(--text-dim)'}">${pending>0?fmt(pending):'—'}</td>
-      <td style="text-align:right;color:${debt>0?'var(--red)':'var(--text-dim)'}">${debt>0?'−'+fmt(debt):'—'}</td>
+      <td style="text-align:right;color:${(p.balance||0)<0?'var(--red)':'inherit'}">${fmt(p.balance||0)}</td>
+      <td style="text-align:right;color:${(p.loanPrincipal||0)>0?'var(--gold)':'var(--text-dim)'}">${(p.loanPrincipal||0)>0?fmt(p.loanPrincipal):'—'}</td>
+      <td style="text-align:right;color:${(p.interestOwed||0)>0?'var(--red)':'var(--text-dim)'}">${(p.interestOwed||0)>0?fmt(p.interestOwed):'—'}</td>
+      <td style="text-align:right;color:${(p.debt||0)>0?'var(--red)':'var(--text-dim)'}">${(p.debt||0)>0?'−'+fmt(p.debt):'—'}</td>
       <td style="text-align:right;color:${worth<0?'var(--red)':'var(--green)'}">${fmt(worth)}</td>
-      <td><button class="btn btn-sm" onclick="openAdjust('${p.name}')">± Adjust</button></td>
+      <td><button class="btn btn-sm" onclick="openEditBalance('${p.name}')">± Edit</button></td>
     </tr>`;
   });
   html+=`</tbody></table></div>`;
   document.getElementById('a-players').innerHTML=html;
 }
+
 async function changeStatus(id,status){await _fsUpd('players',id,{status});}
 async function submitAddPlayer(){
   const name=document.getElementById('new-player-name').value.trim();
   const status=document.getElementById('new-player-status').value;
   if(!name){showErr('add-player-error','Enter a name');return;}
-  if(findPlayer(name)){showErr('add-player-error','Player already exists');return;}
-  await _fsSet('players','p'+Date.now(),{name,status});
+  if(S.players.find(p=>norm(p.name)===norm(name))){showErr('add-player-error','Player already exists');return;}
+  await _fsSet('players','p'+Date.now(),{name,balance:0,loanPrincipal:0,interestOwed:0,debt:0,netWorth:0,status});
   closeModal('add-player-modal');document.getElementById('new-player-name').value='';
 }
-function openAdjust(name){
-  document.getElementById('adjust-content').innerHTML=`
-    <div style="margin-bottom:12px;color:var(--text-dim)">Adjust <strong style="color:var(--text)">${name}</strong></div>
-    <div class="fg"><label class="lbl">Delta (+ add / - deduct)</label><input type="number" id="adj-delta" placeholder="e.g. 200 or -100" /></div>
-    <div class="fg"><label class="lbl">Reason</label><input type="text" id="adj-reason" placeholder="e.g. Audience wheel spin" /></div>
-    <div class="btn-row" style="margin-top:4px">
-      <button class="btn" style="flex:1" onclick="closeModal('adjust-modal')">Cancel</button>
-      <button class="btn btn-gold" style="flex:1" onclick="submitAdjust('${name}')">Apply</button>
+
+// Direct balance editor — no ledger, no adjustments collection, just write the fields
+function openEditBalance(name){
+  const p=getPlayer(name);if(!p)return;
+  document.getElementById('edit-balance-content').innerHTML=`
+    <div style="margin-bottom:12px;color:var(--text-dim)">Editing <strong style="color:var(--text)">${name}</strong></div>
+    <div class="fg"><label class="lbl">Balance (spendable wallet)</label>
+      <input type="number" id="eb-balance" value="${p.balance||0}" /></div>
+    <div class="fg"><label class="lbl">Loan Principal (capital borrowed)</label>
+      <input type="number" id="eb-principal" value="${p.loanPrincipal||0}" min="0" /></div>
+    <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">
+      Interest (20%): <strong id="eb-int-preview">${fmt(Math.round((p.loanPrincipal||0)*0.2))} CC</strong> ·
+      Total debt: <strong id="eb-debt-preview">${fmt((p.loanPrincipal||0)+Math.round((p.loanPrincipal||0)*0.2))} CC</strong> ·
+      Net worth: <strong id="eb-nw-preview">${fmt((p.balance||0)-((p.loanPrincipal||0)+Math.round((p.loanPrincipal||0)*0.2)))} CC</strong>
+    </div>
+    <div id="eb-preview" style="font-size:13px;color:var(--gold);margin-bottom:12px"></div>
+    <div class="btn-row">
+      <button class="btn" style="flex:1" onclick="closeModal('edit-balance-modal')">Cancel</button>
+      <button class="btn btn-gold" style="flex:1" onclick="submitEditBalance('${name}')">Save</button>
     </div>`;
-  document.getElementById('adjust-modal').classList.remove('hidden');
-}
-async function submitAdjust(name){
-  const delta=parseInt(document.getElementById('adj-delta').value);
-  const reason=document.getElementById('adj-reason').value.trim();
-  if(isNaN(delta)){alert('Enter a valid number');return;}
-  await _fsSet('adjustments','adj'+Date.now(),{playerName:name,delta,reason,date:new Date().toISOString()});
-  closeModal('adjust-modal');
+  // Live preview
+  ['eb-balance','eb-principal'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.addEventListener('input',()=>{
+      const b=parseInt(document.getElementById('eb-balance').value)||0;
+      const pr=parseInt(document.getElementById('eb-principal').value)||0;
+      const intr=Math.round(pr*0.2);
+      const d=pr+intr;
+      const nw=b-d;
+      const pi=document.getElementById('eb-int-preview');if(pi)pi.textContent=fmt(intr)+' CC';
+      const pd=document.getElementById('eb-debt-preview');if(pd)pd.textContent=fmt(d)+' CC';
+      const pnw=document.getElementById('eb-nw-preview');if(pnw)pnw.textContent=fmt(nw)+' CC';
+      const prev2=document.getElementById('eb-preview');if(prev2)prev2.textContent=`Balance: ${fmt(b)} · Principal: ${fmt(pr)} · Interest: ${fmt(intr)} · Debt: ${fmt(d)} · NW: ${fmt(nw)}`;
+    });
+  });
+  document.getElementById('edit-balance-modal').classList.remove('hidden');
 }
 
-// ── ADMIN: BANK ─────────────────────────────
+async function submitEditBalance(name){
+  const p=getPlayer(name);if(!p)return;
+  const balance=parseInt(document.getElementById('eb-balance').value)||0;
+  const loanPrincipal=Math.max(0,parseInt(document.getElementById('eb-principal')?.value)||0);
+  const interestOwed=Math.round(loanPrincipal*0.2);
+  const debt=loanPrincipal+interestOwed;
+  const netWorth=balance-debt;
+  await _fsUpd('players',p.id,{balance,loanPrincipal,interestOwed,debt,netWorth});
+  closeModal('edit-balance-modal');
+}
+
+// ── ADMIN: ECONOMY (BANK + GOV AID) ──────────
 function renderABank(){
-  let html=`<div class="sec">Loan rounds</div>`;
-  S.loanRounds.forEach((lr,i)=>{
-    html+=`<div class="card"><div class="row-between">
-      <div><div style="font-weight:500">${lr.label}</div><div style="font-size:12px;color:var(--text-dim)">Max: ${fmt(lr.maxLoan)} · 20% interest</div></div>
-      <div class="row" style="gap:8px">
-        <span class="badge ${lr.open?'badge-open':'badge-closed'}">${lr.open?'Open':'Closed'}</span>
-        <button class="btn btn-sm ${lr.open?'btn-danger':'btn-success'}" onclick="toggleLR(${i})">${lr.open?'Close':'Open'}</button>
-      </div></div>
-      <div class="row" style="margin-top:10px;gap:8px">
-        <input type="number" id="lr-${i}" value="${lr.maxLoan}" style="width:140px" />
-        <button class="btn btn-sm" onclick="updateLRMax(${i})">Update max</button>
+  const maxDebt=S.maxDebt||MAX_DEBT;
+  let html=`
+    <div class="sec">Loan settings</div>
+    <div class="card">
+      <div class="row-between" style="margin-bottom:12px">
+        <div>
+          <div style="font-weight:500">Cat Bank</div>
+          <div style="font-size:12px;color:var(--text-dim);margin-top:2px">Loans available to players. Max debt cap is global.</div>
+        </div>
+        <span class="badge ${S.loanOpen?'badge-open':'badge-closed'}">${S.loanOpen?'Open':'Closed'}</span>
+      </div>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <button class="btn btn-sm ${S.loanOpen?'btn-danger':'btn-success'}" onclick="toggleLoanOpen()">
+          ${S.loanOpen?'Close bank':'Open bank'}
+        </button>
+      </div>
+      <div style="margin-top:14px">
+        <label class="lbl">Debt cap — cumulative rounds</label>
+        <div style="font-size:12px;background:var(--bg3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px">
+          ${(S.debtCapHistory||[]).length===0
+            ? '<div style="color:var(--text-dim);padding:4px 0">No rounds added yet. Players cannot borrow until a round is added.</div>'
+            : (S.debtCapHistory||[]).map((e,i)=>`
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;border-bottom:0.5px solid rgba(201,168,76,.07)">
+                <span style="color:var(--text-dim)">${e.label||('Round '+(i+1))}</span>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="color:var(--gold)">+${fmt(e.amount)} CC</span>
+                  <button style="font-size:10px;padding:1px 6px;border-radius:3px;cursor:pointer;background:transparent;border:0.5px solid rgba(192,64,64,.4);color:var(--red)" onclick="removeDebtCapRound(${i})">✕</button>
+                </div>
+              </div>`).join('')}
+          ${(S.debtCapHistory||[]).length>0?`
+          <div style="display:flex;justify-content:space-between;padding:5px 0;margin-top:4px;font-weight:500;border-top:0.5px solid rgba(201,168,76,.15)">
+            <span>Total cap</span>
+            <span style="color:var(--gold);font-family:'Cinzel',serif">${fmt(maxDebt)} CC</span>
+          </div>`:''}
+        </div>
+        <label class="lbl">Add borrowing round</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input type="text" id="new-cap-label" placeholder="Label (e.g. Semis)" style="width:140px" />
+          <input type="number" id="new-cap-amount" placeholder="Amount (CC)" style="width:120px" min="1" />
+          <button class="btn btn-sm btn-success" onclick="addDebtCapRound()">+ Add round</button>
+        </div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:4px">Each round ADDS to total — never replaces. Borrowable = total cap − player's current debt.</div>
       </div>
     </div>`;
-  });
-  html+=`<div class="sec" style="margin-top:20px">All loans</div><div class="tbl-wrap"><table>
-    <thead><tr><th>Player</th><th>Round</th><th style="text-align:right">Borrowed</th><th style="text-align:right">Owes</th><th>Status</th></tr></thead><tbody>`;
-  if(!S.loans.length) html+=`<tr><td colspan="5" style="text-align:center;color:var(--text-dim)">No loans</td></tr>`;
-  S.loans.forEach(l=>{
-    html+=`<tr><td>${l.playerName}</td><td>R${l.loanRound}</td>
-      <td style="text-align:right">${fmt(l.amount)}</td>
-      <td style="text-align:right;color:var(--red)">${fmt(l.amount*1.2)}</td>
-      <td><span class="badge ${l.repaid?'badge-done':'badge-pending'}">${l.repaid?'Repaid':'Outstanding'}</span>
-        ${!l.repaid?`<button class="btn btn-sm btn-success" style="margin-left:6px" onclick="markRepaid('${l.id}')">Mark repaid</button>`:''}</td>
-    </tr>`;
-  });
-  html+=`</tbody></table></div>`;
+  html+=renderGovAidSection();
   document.getElementById('a-bank').innerHTML=html;
 }
-async function toggleLR(i){
-  const lrs=[...S.loanRounds];lrs[i]={...lrs[i],open:!lrs[i].open};
-  const oi=lrs.findIndex(r=>r.open);
-  await _fsCfg({loanRounds:lrs,currentRound:oi>=0?lrs[oi].round:S.currentRound});
-}
-async function updateLRMax(i){const v=parseInt(document.getElementById('lr-'+i).value);if(isNaN(v)||v<0)return;const lrs=[...S.loanRounds];lrs[i]={...lrs[i],maxLoan:v};await _fsCfg({loanRounds:lrs});}
-async function markRepaid(id){await _fsUpd('loans',id,{repaid:true});}
 
-// ── ADMIN: AUDIENCE ─────────────────────────
-// Workflow: paste names → fuzzy match → review individual rows → award one at a time.
-// No bulk auto-payout. Every award is a separate auditable Firestore write.
-function renderAudience(){
-  const today=new Date().toISOString().slice(0,10);
-  // Build set of (playerName_lower + note_lower) already awarded today for dupe detection
-  const todayAwards=new Set(
-    (S.adjustments||[])
-      .filter(a=>a.reason&&a.reason.toLowerCase().includes('audience')&&(a.date||'').slice(0,10)===today)
-      .map(a=>norm(a.playerName)+'||'+(a.reason||'').toLowerCase())
+async function toggleLoanOpen(){
+  await _fsCfg({loanOpen:!S.loanOpen});
+}
+async function addDebtCapRound(){
+  const label=(document.getElementById('new-cap-label')?.value||'').trim();
+  const amount=parseInt(document.getElementById('new-cap-amount')?.value)||0;
+  if(!label){alert('Enter a label for this round (e.g. "Semis")');return;}
+  if(amount<=0){alert('Enter a positive CC amount');return;}
+  const newHistory=[...(S.debtCapHistory||[]),{label,amount,addedAt:new Date().toISOString()}];
+  const newTotal=newHistory.reduce((s,e)=>s+(e.amount||0),0);
+  await _fsCfg({debtCapHistory:newHistory,maxDebt:newTotal});
+  const li=document.getElementById('new-cap-label');const ai=document.getElementById('new-cap-amount');
+  if(li)li.value='';if(ai)ai.value='';
+}
+async function removeDebtCapRound(idx){
+  if(!confirm('Remove this round? This reduces total borrowing capacity for everyone.'))return;
+  const newHistory=(S.debtCapHistory||[]).filter((_,i)=>i!==idx);
+  const newTotal=newHistory.reduce((s,e)=>s+(e.amount||0),0);
+  await _fsCfg({debtCapHistory:newHistory,maxDebt:newTotal});
+}
+
+// ── GOVERNMENT AID ────────────────────────────
+const GOV_AID_KEY   = 'govaid_semis';
+const GOV_AID_PHASE = 'semis_2026';
+
+// Snapshot locked at render time, consumed at apply time — no drift between preview and commit.
+let _govAidPayload = null;
+
+function govAidAmount(netWorth){
+  // Tapered formula — order-preserving, rounded to nearest 50.
+  // deficit:    1000 + |netWorth| × 0.3
+  // 0–1000:     1000 − netWorth  × 0.7
+  // 1000–2000:  100 flat
+  // 2000+:      no aid
+  let raw;
+  if(netWorth<0)          raw=1000+Math.abs(netWorth)*0.3;
+  else if(netWorth<=1000) raw=1000-netWorth*0.7;
+  else if(netWorth<2000)  raw=100;
+  else                    raw=0;
+  return Math.round(raw/50)*50;
+}
+
+function govAidDocId(playerName){
+  return GOV_AID_KEY+'_'+playerName.replace(/[^a-z0-9]/gi,'_').toLowerCase();
+}
+
+function renderGovAidSection(){
+  // Build list of already-applied doc IDs by checking player records directly
+  // (no adjustments collection — gov aid is now a direct balance write)
+  const appliedSet = new Set(
+    S.players
+      .filter(p=>p.govAidPhase===GOV_AID_PHASE)
+      .map(p=>govAidDocId(p.name))
   );
 
-  const html=`
+  // Freeze snapshot at render time
+  _govAidPayload = S.players
+    .map(p=>{
+      const nw=p.netWorth||0;
+      const aid=govAidAmount(nw);
+      const docId=govAidDocId(p.name);
+      return{name:p.name,id:p.id,nw,aid,docId,applied:appliedSet.has(docId)};
+    })
+    .filter(r=>r.aid>0)
+    .sort((a,b)=>a.nw-b.nw);
+
+  const rows=_govAidPayload;
+  const totalAid=rows.reduce((s,r)=>s+r.aid,0);
+  const appliedCount=rows.filter(r=>r.applied).length;
+  const allApplied=appliedCount===rows.length;
+  const noneApplied=appliedCount===0;
+
+  let statusBanner='';
+  if(allApplied){
+    statusBanner=`<div class="alert alert-success" style="margin-bottom:12px">✅ Government aid fully applied — ${rows.length} players received stimulus.</div>`;
+  } else if(appliedCount>0){
+    statusBanner=`<div class="alert alert-gold" style="margin-bottom:12px">⚠️ Partial — ${appliedCount}/${rows.length} applied. Safe to re-run; already-applied players are skipped.</div>`;
+  }
+
+  const tableRows=rows.map(r=>`
+    <tr>
+      <td>${r.name}</td>
+      <td style="text-align:right;color:${r.nw<0?'var(--red)':'var(--text)'}">${fmt(r.nw)} CC</td>
+      <td style="text-align:right;color:var(--green)">+${fmt(r.aid)} CC</td>
+      <td style="text-align:right;color:${r.nw<0?'var(--red)':'var(--text)'}">${fmt(r.nw+r.aid)} CC</td>
+      <td><span class="badge ${r.applied?'badge-done':'badge-pending'}">${r.applied?'Applied':'Pending'}</span></td>
+    </tr>`).join('');
+
+  return `
+    <div class="sec" style="margin-top:28px">🏛️ Government Aid — Semis</div>
+    <div class="alert alert-info" style="margin-bottom:8px;font-size:12px">⚠️ Run <strong>Settings → Resync player economy from CSV</strong> before applying aid to ensure balances are current.</div>
     <div class="card">
-      <div style="font-weight:500;margin-bottom:4px">Step 1 — Paste names to match</div>
-      <div style="font-size:13px;color:var(--text-dim);margin-bottom:10px">
-        Paste your collated audience/viewer list. The app will fuzzy-match against guild members
-        and generate individual award rows. You confirm each award separately.
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+        <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:10px;text-align:center">
+          <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Eligible</div>
+          <div style="font-family:'Cinzel',serif;font-size:18px;color:var(--gold)">${rows.length}</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:10px;text-align:center">
+          <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total aid pool</div>
+          <div style="font-family:'Cinzel',serif;font-size:18px;color:var(--gold)">${fmt(totalAid)} CC</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:10px;text-align:center">
+          <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Applied</div>
+          <div style="font-family:'Cinzel',serif;font-size:18px;color:${allApplied?'var(--green)':appliedCount>0?'var(--gold)':'var(--text-dim)'}">${appliedCount} / ${rows.length}</div>
+        </div>
       </div>
-      <div class="fg"><label class="lbl">Paste names (one per line)</label>
-        <textarea id="audience-paste" rows="5" placeholder="Paste names here, one per line..."></textarea></div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <button class="btn btn-gold" onclick="parseAudience()">Match names →</button>
-        <div style="font-size:12px;color:var(--text-dim)">No awards are sent until you click Award on each individual row.</div>
+      ${statusBanner}
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px">
+        Formula — deficit: <code style="background:var(--bg3);padding:1px 5px;border-radius:3px">1000 + |nw|×0.3</code> &nbsp;·&nbsp;
+        0–1000: <code style="background:var(--bg3);padding:1px 5px;border-radius:3px">1000 − nw×0.7</code> &nbsp;·&nbsp;
+        1000–2000: <code style="background:var(--bg3);padding:1px 5px;border-radius:3px">100 flat</code> &nbsp;·&nbsp;
+        rounded to nearest 50 &nbsp;·&nbsp; phase: <code style="background:var(--bg3);padding:1px 5px;border-radius:3px">${GOV_AID_PHASE}</code>
       </div>
-    </div>
-    <div id="audience-result"></div>
-    <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin:20px 0 8px;padding-bottom:6px;border-bottom:0.5px solid var(--border)">Award history (audience only)</div>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>Player</th><th style="text-align:right">Amount</th><th>Note</th><th>Date</th></tr></thead>
-      <tbody>${(()=>{
-        const rows=(S.adjustments||[]).filter(a=>a.reason&&a.reason.toLowerCase().includes('audience')).slice().reverse();
-        if(!rows.length) return '<tr><td colspan="4" style="text-align:center;color:var(--text-dim)">No awards yet</td></tr>';
-        return rows.map(a=>`<tr>
-          <td>${a.playerName}</td>
-          <td style="text-align:right;color:var(--green)">+${fmt(a.delta)}</td>
-          <td style="font-size:12px;color:var(--text-dim)">${a.reason||''}</td>
-          <td style="font-size:12px;color:var(--text-dim)">${(a.date||'').slice(0,10)}</td>
-        </tr>`).join('');
-      })()}</tbody>
-    </table></div>`;
-  document.getElementById('a-audience').innerHTML=html;
+      <div class="tbl-wrap" style="margin-bottom:14px"><table>
+        <thead><tr>
+          <th>Player</th><th style="text-align:right">Net worth</th>
+          <th style="text-align:right">Aid</th><th style="text-align:right">After aid</th><th>Status</th>
+        </tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        ${!allApplied?`<button class="btn btn-gold" onclick="applyGovAid()" id="gov-aid-btn">${noneApplied?'🏛️ Apply Government Aid to all eligible players':'🏛️ Apply remaining ('+(rows.length-appliedCount)+' pending)'}</button>`:''}
+        ${appliedCount>0?`<button class="btn btn-sm btn-danger" onclick="undoGovAid()">↩ Undo gov aid (${appliedCount} player${appliedCount!==1?'s':''})</button>`:''}
+      </div>
+      ${!allApplied?'<div style="font-size:11px;color:var(--text-dim);margin-top:6px">Amounts locked at preview time. Already-applied players are skipped.</div>':''}
+    </div>`;
 }
 
-function parseAudience(){
-  const raw=document.getElementById('audience-paste').value;
-  if(!raw.trim()){alert('Paste some names first');return;}
-  const lines=raw.split(/\n/).map(l=>l.trim()).filter(Boolean);
-  const today=new Date().toISOString().slice(0,10);
-
-  // Fuzzy match each line against known players
-  const matched=[];
-  S.players.forEach(p=>{
-    const pn=norm(p.name);
-    if(lines.some(line=>norm(line)===pn||norm(line).includes(pn)||pn.includes(norm(line))))
-      matched.push(p.name);
-  });
-  const unmatched=lines.filter(line=>{
-    const ln=norm(line);
-    return !S.players.find(p=>norm(p.name)===ln||norm(p.name).includes(ln)||ln.includes(norm(p.name)));
-  });
-
-  if(!matched.length){
-    document.getElementById('audience-result').innerHTML=
-      '<div class="alert alert-danger" style="margin-top:12px">No guild members matched. Check the names and try again.</div>';
+async function applyGovAid(){
+  if(!_govAidPayload||!_govAidPayload.length){
+    alert('Preview not loaded — navigate away and back to Economy tab to reload.');
     return;
   }
+  const btn=document.getElementById('gov-aid-btn');
+  if(btn){btn.disabled=true;btn.textContent='Applying…';}
 
-  // Build per-player award rows — no bulk button, no modal
-  // Each row has its own amount + note + Award button
-  let rows='';
-  matched.forEach((name,i)=>{
-    // Check if this player already has an award today (any note) — warn but don't block
-    const alreadyToday=(S.adjustments||[]).some(a=>
-      norm(a.playerName)===norm(name) &&
-      a.reason&&a.reason.toLowerCase().includes('audience') &&
-      (a.date||'').slice(0,10)===today
-    );
-    const warnHtml=alreadyToday
-      ? `<span style="font-size:11px;color:var(--gold);margin-left:6px">⚠ already awarded today</span>`
-      : '';
-    rows+=`<tr>
-      <td style="font-weight:500">${name}${warnHtml}</td>
-      <td><input type="number" id="aud-amt-${i}" placeholder="coins" min="1"
-        style="width:90px;padding:5px 8px;font-size:13px" /></td>
-      <td><input type="text" id="aud-note-${i}" value="Audience bonus"
-        style="padding:5px 8px;font-size:13px" /></td>
-      <td><button class="btn btn-sm btn-gold" onclick="awardOne(${JSON.stringify(name)},${i})">Award</button></td>
-    </tr>`;
-  });
+  // Re-check which players already received aid (idempotency check at commit time)
+  const alreadyApplied=new Set(
+    S.players.filter(p=>p.govAidPhase===GOV_AID_PHASE).map(p=>govAidDocId(p.name))
+  );
+  const toWrite=_govAidPayload.filter(r=>!alreadyApplied.has(r.docId));
+  if(!toWrite.length){renderABank();return;}
 
-  let html=`
-    <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 8px;padding-bottom:6px;border-bottom:0.5px solid var(--border)">
-      Step 2 — ${matched.length} members matched · award individually
-    </div>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>Player</th><th>Coins</th><th>Note</th><th></th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table></div>`;
-
-  if(unmatched.length){
-    html+=`<div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin:14px 0 6px">
-      Not matched (${unmatched.length}) — review manually
-    </div><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">`;
-    unmatched.slice(0,40).forEach(n=>{html+=`<span class="audience-tag">${n}</span>`;});
-    html+=`</div>`;
+  const CHUNK=400;
+  for(let i=0;i<toWrite.length;i+=CHUNK){
+    const batch=writeBatch(_db);
+    toWrite.slice(i,i+CHUNK).forEach(r=>{
+      // Direct balance write — no adjustments collection
+      // Aid adds to available; netWorth recalculated inline
+      const p=getPlayer(r.name);
+      if(!p||!p.id) return;
+      const newBal=Math.round((p.balance||0)+r.aid);
+      const newNW=Math.round((p.netWorth||0)+r.aid);
+      batch.update(doc(_db,'players',p.id),{
+        balance:      newBal,
+        netWorth:     newNW,
+        govAidPhase:  GOV_AID_PHASE,  // idempotency marker
+        govAidAmount: r.aid,           // audit field
+        govAidDate:   new Date().toISOString(),
+      });
+    });
+    await batch.commit();
   }
-  document.getElementById('audience-result').innerHTML=html;
+  _govAidPayload=null;
+  renderABank();
 }
 
-async function awardOne(playerName, rowIdx){
-  const amountEl=document.getElementById('aud-amt-'+rowIdx);
-  const noteEl=document.getElementById('aud-note-'+rowIdx);
-  const amount=parseInt(amountEl.value);
-  const note=(noteEl.value||'Audience bonus').trim();
-  if(!amount||amount<=0){amountEl.style.borderColor='var(--red)';amountEl.focus();return;}
-  amountEl.style.borderColor='';
-
-  // Write individual Firestore adjustment
-  const btn=document.querySelector(`#audience-result tr:nth-child(${rowIdx+1}) .btn-gold`);
-  if(btn){btn.disabled=true;btn.textContent='Saving...';}
-  await _fsSet('adjustments','adj'+Date.now()+'_'+norm(playerName).replace(/[^a-z0-9]/g,''),
-    {playerName,delta:amount,reason:'Audience — '+note,date:new Date().toISOString()});
-
-  // Mark row as done visually — disable inputs and button
-  if(amountEl) amountEl.disabled=true;
-  if(noteEl) noteEl.disabled=true;
-  if(btn){btn.disabled=true;btn.textContent='✓ Awarded';btn.className='btn btn-sm btn-success';}
-
-  // Refresh the award history table below without clearing the matched list
-  _refreshAudienceHistory();
+// ── UNDO GOVERNMENT AID ──────────────────────
+async function undoGovAid(){
+  const recipients=S.players.filter(p=>p.govAidPhase===GOV_AID_PHASE&&(p.govAidAmount||0)>0);
+  if(!recipients.length){alert('No gov aid to undo for phase: '+GOV_AID_PHASE);return;}
+  if(!confirm('Undo government aid for '+recipients.length+' player(s)? This reverses their aid amounts.'))return;
+  const CHUNK=400;
+  for(let i=0;i<recipients.length;i+=CHUNK){
+    const batch=writeBatch(_db);
+    recipients.slice(i,i+CHUNK).forEach(p=>{
+      const aid=p.govAidAmount||0;
+      batch.update(doc(_db,'players',p.id),{
+        balance:      Math.round((p.balance||0)-aid),
+        netWorth:     Math.round((p.netWorth||0)-aid),
+        govAidPhase:  null,
+        govAidAmount: 0,
+        govAidDate:   null,
+      });
+    });
+    await batch.commit();
+  }
+  _govAidPayload=null;
+  renderABank();
 }
 
-function _refreshAudienceHistory(){
-  // Only refresh the history table, not the whole tab (preserves the matched rows the admin is working through)
-  const tableBody=document.querySelector('#a-audience .tbl-wrap:last-of-type tbody');
-  if(!tableBody) return;
-  const rows=(S.adjustments||[]).filter(a=>a.reason&&a.reason.toLowerCase().includes('audience')).slice().reverse();
-  tableBody.innerHTML=rows.length
-    ? rows.map(a=>`<tr>
-        <td>${a.playerName}</td>
-        <td style="text-align:right;color:var(--green)">+${fmt(a.delta)}</td>
-        <td style="font-size:12px;color:var(--text-dim)">${a.reason||''}</td>
-        <td style="font-size:12px;color:var(--text-dim)">${(a.date||'').slice(0,10)}</td>
-      </tr>`).join('')
-    : '<tr><td colspan="4" style="text-align:center;color:var(--text-dim)">No awards yet</td></tr>';
+// ── ADMIN: CORRECTIONS ────────────────────────
+function renderACorrections(){
+  const matchOpts=S.matches.map(m=>`<option value="${m.id}">${m.id}: ${m.p1} vs ${m.p2} (${m.status})</option>`).join('');
+  const playerOpts=[...S.players].sort((a,b)=>a.name.localeCompare(b.name))
+    .map(p=>`<option value="${p.name}">${p.name}</option>`).join('');
+
+  document.getElementById('a-corrections').innerHTML=`
+    <div class="alert alert-gold" style="margin-bottom:14px">
+      <strong>Corrections panel</strong> — direct Firestore writes. All changes are immediate and irreversible unless manually undone.
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">View bets by</div>
+      <div class="btn-row">
+        <button class="btn btn-sm btn-gold" id="corr-match-btn" onclick="setCorrView('match')">Match</button>
+        <button class="btn btn-sm" id="corr-player-btn" onclick="setCorrView('player')">Player</button>
+      </div>
+    </div>
+    <div id="corr-selector-match">
+      <div class="fg"><label class="lbl">Select match</label>
+        <select id="corr-match-sel" onchange="loadCorrBets('match')">${matchOpts}</select></div>
+    </div>
+    <div id="corr-selector-player" style="display:none">
+      <div class="fg"><label class="lbl">Select player</label>
+        <select id="corr-player-sel" onchange="loadCorrBets('player')">${playerOpts}</select></div>
+    </div>
+    <div id="corr-bets-table">
+      <div style="color:var(--text-dim);font-size:13px;padding:8px 0">Select a match or player above.</div>
+    </div>`;
 }
 
-// ── ADMIN: SETTINGS ─────────────────────────
+let _corrView='match';
+function setCorrView(view){
+  _corrView=view;
+  document.getElementById('corr-selector-match').style.display=view==='match'?'':'none';
+  document.getElementById('corr-selector-player').style.display=view==='player'?'':'none';
+  document.getElementById('corr-match-btn').className='btn btn-sm'+(view==='match'?' btn-gold':'');
+  document.getElementById('corr-player-btn').className='btn btn-sm'+(view==='player'?' btn-gold':'');
+  document.getElementById('corr-bets-table').innerHTML='<div style="color:var(--text-dim);font-size:13px;padding:8px 0">Select above.</div>';
+}
+
+function loadCorrBets(mode){
+  mode=mode||_corrView;
+  let bets,title;
+  if(mode==='match'){
+    const mid=document.getElementById('corr-match-sel')?.value;if(!mid)return;
+    const m=S.matches.find(x=>x.id===mid);
+    bets=S.bets.filter(b=>b.matchId===mid);
+    title=mid+(m?`: ${m.p1} vs ${m.p2}`:'');
+  } else {
+    const player=document.getElementById('corr-player-sel')?.value;if(!player)return;
+    bets=S.bets.filter(b=>norm(b.playerName)===norm(player));
+    title=`All bets for ${player}`;
+  }
+  if(!bets.length){document.getElementById('corr-bets-table').innerHTML='<div class="alert alert-info">No bets found.</div>';return;}
+  const sorted=[...bets].sort((a,b)=>{if((a.result===null)!==(b.result===null))return a.result===null?-1:1;return (a.matchId||'').localeCompare(b.matchId||'');});
+  const pOpts=[...S.players].sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${p.name}">${p.name}</option>`).join('');
+  const rows=sorted.map(b=>{
+    const m=S.matches.find(x=>x.id===b.matchId);
+    const p1=m?m.p1:'?',p2=m?m.p2:'?';
+    const pickOpts=`<option value="${p1}" ${b.pick===p1?'selected':''}>${p1}</option><option value="${p2}" ${b.pick===p2?'selected':''}>${p2}</option>`;
+    const resOpts=['won','lost','walkover','voided','null'].map(r=>`<option value="${r}" ${String(b.result)===r?'selected':''}>${r==='null'?'pending':r}</option>`).join('');
+    const bettorOpts=pOpts.replace(`value="${b.playerName}"`,`value="${b.playerName}" selected`);
+    const sc=b.result===null?'var(--gold)':b.result==='won'?'var(--green)':b.result==='voided'||b.result==='walkover'?'var(--text-dim)':'var(--red)';
+    return `<div style="background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--gold);font-family:'Cinzel',serif">${b.matchId}</span>
+        <span style="font-size:11px;color:var(--text-dim)">${p1} vs ${p2}</span>
+        <span style="font-size:11px;color:${sc};background:rgba(0,0,0,.2);padding:1px 7px;border-radius:3px;margin-left:auto">${b.result===null?'pending':b.result}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+        <div><label class="lbl" style="margin-bottom:3px">Bettor</label><select id="cb-bettor-${b.id}" style="font-size:12px;padding:4px 8px">${bettorOpts}</select></div>
+        <div><label class="lbl" style="margin-bottom:3px">Pick</label><select id="cb-pick-${b.id}" style="font-size:12px;padding:4px 8px">${pickOpts}</select></div>
+        <div><label class="lbl" style="margin-bottom:3px">Amount</label><input type="number" id="cb-amt-${b.id}" value="${b.amount}" min="1" style="font-size:12px;padding:4px 8px" /></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div><label class="lbl" style="margin-bottom:3px">Result</label><select id="cb-res-${b.id}" style="font-size:12px;padding:4px 8px">${resOpts}</select></div>
+        <div><label class="lbl" style="margin-bottom:3px">Reason <span style="color:var(--red)">*required</span></label>
+          <input type="text" id="cb-note-${b.id}" placeholder="e.g. Admin correction" style="font-size:12px;padding:4px 8px" value="${b.adminNote||''}" /></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-sm btn-gold" onclick="saveBetEdit('${b.id}')">Save</button>
+        <button class="btn btn-sm btn-danger" onclick="voidBet('${b.id}')">Void</button>
+        <button class="btn btn-sm btn-danger" style="opacity:.6" onclick="hardDeleteBet('${b.id}')">Delete</button>
+      </div>
+      <div id="cb-msg-${b.id}" style="font-size:12px;margin-top:6px;display:none"></div>
+    </div>`;
+  }).join('');
+  document.getElementById('corr-bets-table').innerHTML=`
+    <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin:4px 0 10px;padding-bottom:6px;border-bottom:0.5px solid var(--border)">${title} — ${sorted.length} bet(s)</div>${rows}`;
+}
+
+async function saveBetEdit(betId){
+  const note=(document.getElementById('cb-note-'+betId)?.value||'').trim();
+  if(!note){const msg=document.getElementById('cb-msg-'+betId);if(msg){msg.style.display='block';msg.style.color='var(--red)';msg.textContent='Reason required.';}return;}
+  const newAmt=parseInt(document.getElementById('cb-amt-'+betId)?.value);
+  if(isNaN(newAmt)||newAmt<=0){const msg=document.getElementById('cb-msg-'+betId);if(msg){msg.style.display='block';msg.style.color='var(--red)';msg.textContent='Amount must be positive.';}return;}
+  const newRes=document.getElementById('cb-res-'+betId)?.value;
+  await _fsUpd('bets',betId,{
+    playerName:document.getElementById('cb-bettor-'+betId)?.value,
+    pick:document.getElementById('cb-pick-'+betId)?.value,
+    amount:newAmt, result:newRes==='null'?null:newRes,
+    adminNote:note, adminEditedAt:new Date().toISOString()
+  });
+  const msg=document.getElementById('cb-msg-'+betId);
+  if(msg){msg.style.display='block';msg.style.color='var(--green)';msg.textContent='✓ Saved';}
+  setTimeout(()=>loadCorrBets(_corrView),400);
+}
+async function voidBet(betId){
+  const note=(document.getElementById('cb-note-'+betId)?.value||'').trim();
+  if(!note){const msg=document.getElementById('cb-msg-'+betId);if(msg){msg.style.display='block';msg.style.color='var(--red)';msg.textContent='Add a reason before voiding.';}return;}
+  const bet=S.bets.find(b=>b.id===betId);
+  if(!bet){const msg=document.getElementById('cb-msg-'+betId);if(msg){msg.style.display='block';msg.style.color='var(--red)';msg.textContent='Bet not found.';}return;}
+  if(bet.result==='voided'){const msg=document.getElementById('cb-msg-'+betId);if(msg){msg.style.display='block';msg.style.color='var(--red)';msg.textContent='Already voided.';}return;}
+  const refund = bet.result===null; // only refund if still pending (stake is gone from balance)
+  if(!confirm(`Void this bet (${fmt(bet.amount)} CC on ${bet.pick})?${refund?' Stake will be refunded.':' No refund (already settled).'}`))return;
+  const batch=writeBatch(_db);
+  batch.update(doc(_db,'bets',betId),{result:'voided',adminNote:note,adminEditedAt:new Date().toISOString()});
+  if(refund){
+    const p=getPlayer(bet.playerName);
+    if(p?.id){
+      const voidBal=Math.round((p.balance||0)+bet.amount);
+      batch.update(doc(_db,'players',p.id),{
+        balance:  voidBal,
+        netWorth: voidBal-(p.debt||0),
+      });
+    }
+  }
+  await batch.commit();
+  const msg=document.getElementById('cb-msg-'+betId);
+  if(msg){msg.style.display='block';msg.style.color='var(--green)';msg.textContent=refund?`✓ Voided and refunded ${fmt(bet.amount)} CC`:'✓ Voided (no refund — already settled)';}
+  setTimeout(()=>loadCorrBets(_corrView),500);
+}
+async function hardDeleteBet(betId){
+  const note=(document.getElementById('cb-note-'+betId)?.value||'').trim();
+  if(!note){const msg=document.getElementById('cb-msg-'+betId);if(msg){msg.style.display='block';msg.style.color='var(--red)';msg.textContent='Add a reason before deleting.';}return;}
+  if(!confirm('HARD DELETE this bet? Cannot be undone.'))return;
+  await _fsDel('bets',betId);
+  setTimeout(()=>loadCorrBets(_corrView),400);
+}
+
+// ── ADMIN: SETTINGS ───────────────────────────
 function renderASettings(){
   document.getElementById('a-settings').innerHTML=`
-    <div class="card">
-      <div style="font-weight:500;margin-bottom:8px">Export & backup</div>
-      <div class="btn-row">
-        <button class="btn btn-gold btn-sm" onclick="exportData()">Export JSON</button>
-        <button class="btn btn-sm" onclick="importData()">Import JSON</button>
+    <div class="card" style="border-color:rgba(201,168,76,.4)">
+      <div style="font-weight:500;margin-bottom:4px">🔄 Player Economy Resync</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px">
+        Overwrites balance, loanPrincipal, interestOwed, debt, netWorth from CSV snapshot.<br>
+        <strong style="color:var(--gold)">Does NOT touch bets, matches, or config.</strong>
       </div>
+      <div id="resync-status" style="font-size:12px;margin-bottom:8px"></div>
+      <button class="btn btn-gold btn-sm" onclick="resyncPlayersFromCSV()">↻ Resync player economy from CSV</button>
+    </div>
+    <div class="card">
+      <div style="font-weight:500;margin-bottom:8px">Export backup</div>
+      <button class="btn btn-gold btn-sm" onclick="exportData()">Export JSON</button>
     </div>
     <div class="card">
       <div style="font-weight:500;margin-bottom:8px">Reset player PIN</div>
-      <div style="font-size:13px;color:var(--text-dim);margin-bottom:10px">Reset a player's PIN so they can set a new one on next login.</div>
       <div style="display:flex;gap:8px">
         <select id="reset-pin-player" style="flex:1">${S.players.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${p.name}">${p.name}</option>`).join('')}</select>
         <button class="btn btn-sm btn-danger" onclick="resetPin()">Reset PIN</button>
@@ -1573,14 +1831,119 @@ function renderASettings(){
     </div>
     <div class="card">
       <div style="font-weight:500;margin-bottom:8px">Event info</div>
-      <div style="font-size:13px;color:var(--text-dim)">Starting coins: <strong style="color:var(--text)">200</strong> &nbsp;·&nbsp; Bet: <strong style="color:var(--text)">2×</strong> &nbsp;·&nbsp; Loan interest: <strong style="color:var(--text)">20%</strong><br>
-        Admin password: <code style="background:var(--bg3);padding:2px 6px;border-radius:4px">${ADMIN_PW}</code></div>
+      <div style="font-size:13px;color:var(--text-dim)">
+        Bet multiplier: <strong style="color:var(--text)">2×</strong> &nbsp;·&nbsp;
+        Gov aid phase: <strong style="color:var(--text)">${GOV_AID_PHASE}</strong><br>
+        Admin password: <code style="background:var(--bg3);padding:2px 6px;border-radius:4px">${ADMIN_PW}</code>
+      </div>
     </div>
     <div class="card">
       <div style="font-weight:500;margin-bottom:8px;color:var(--red)">Danger zone</div>
-      <button class="btn btn-sm btn-danger" onclick="clearAll()">Reset all data</button>
+      <div style="font-size:13px;color:var(--text-dim);margin-bottom:10px">Wipe all bets. Player balances NOT affected.</div>
+      <button class="btn btn-sm btn-danger" onclick="clearAllBets()">Wipe all bets</button>
     </div>`;
 }
+
+// ── PLAYER ECONOMY RESYNC ─────────────────────
+// Hardcoded from CSV snapshot (May 2026). Overwrites stale Firestore player docs.
+// Matches by name. Does NOT touch bets, matches, or config.
+async function resyncPlayersFromCSV(){
+  if(!confirm('Resync all player economy data from CSV snapshot?\n\nThis overwrites balance, loanPrincipal, interestOwed, debt, and netWorth for all matched players.\nBets, matches, and config are NOT affected.'))return;
+  const statusEl=document.getElementById('resync-status');
+  if(statusEl){statusEl.style.color='var(--gold)';statusEl.textContent='Resyncing...';}
+
+  // SOURCE OF TRUTH — mapped directly from CSV columns:
+  // balance = "Your Current Bettable Amount (Before Loan Repayment)"
+  // loanPrincipal = "Loans (Total Max Loan: 1600)"
+  // interestOwed = "Interest"
+  // netWorth = "Actual Balance After Loan Repayment"
+  // debt = loanPrincipal + interestOwed
+  const CSV=[
+    {name:"Jahbs",        balance:100,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1820},
+    {name:"Jjooo",        balance:200,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1720},
+    {name:"Snorkie",      balance:200,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1720},
+    {name:"Skylleria",    balance:250,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1670},
+    {name:"iLYa",         balance:300,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1620},
+    {name:"Petter",       balance:0,     loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:-720},
+    {name:"Gaia",         balance:250,   loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:-470},
+    {name:"OPM",          balance:700,   loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:-20},
+    {name:"Hel",          balance:0,     loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:0},
+    {name:"Sanhua",       balance:100,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:100},
+    {name:"Zia",          balance:100,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:100},
+    {name:"Huangjii",     balance:1050,  loanPrincipal:700,  interestOwed:140, debt:840,  netWorth:210},
+    {name:"Python",       balance:250,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:250},
+    {name:"xZel",         balance:2200,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:280},
+    {name:"AutisticPickle",balance:300,  loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
+    {name:"Cai",          balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
+    {name:"HaaanZ",       balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
+    {name:"Jade-Rooster", balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
+    {name:"Nshki",        balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
+    {name:"XE",           balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
+    {name:"XNeaR",        balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
+    {name:"Yumad",        balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
+    {name:"Tsurea",       balance:1050,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:330},
+    {name:"Angel (LilMilotic)",balance:400,loanPrincipal:0,  interestOwed:0,   debt:0,    netWorth:400},
+    {name:"Villya",       balance:400,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:400},
+    {name:"deeepeee",     balance:450,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:450},
+    {name:"OishiEdo",     balance:450,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:450},
+    {name:"Reito",        balance:500,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:500},
+    {name:"TK",           balance:500,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:500},
+    {name:"Lviv",         balance:600,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:600},
+    {name:"SirShadow",    balance:600,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:600},
+    {name:"Togez",        balance:600,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:600},
+    {name:"HotBBQGrill",  balance:850,   loanPrincipal:200,  interestOwed:40,  debt:240,  netWorth:610},
+    {name:"Mici",         balance:1000,  loanPrincipal:300,  interestOwed:60,  debt:360,  netWorth:640},
+    {name:"Alrenq",       balance:750,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:750},
+    {name:"YangKai",      balance:950,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:950},
+    {name:"Dumamay",      balance:2550,  loanPrincipal:1250, interestOwed:250, debt:1500, netWorth:1050},
+    {name:"Vorpalpledge", balance:1300,  loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:1300},
+    {name:"plop",         balance:2132,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:1412},
+    {name:"FortunaKirana",balance:1500,  loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:1500},
+    {name:"Cozmo",        balance:3480,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:1560},
+    {name:"xJunhaox",     balance:2950,  loanPrincipal:1000, interestOwed:200, debt:1200, netWorth:1750},
+    {name:"Serene",       balance:3800,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:1880},
+    {name:"Seraliea",     balance:2700,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:1980},
+    {name:"Feilong",      balance:3000,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:2280},
+    {name:"Ogeypeko",     balance:3000,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:2280},
+    {name:"Huakui",       balance:3550,  loanPrincipal:800,  interestOwed:160, debt:960,  netWorth:2590},
+    {name:"tsukiyue",     balance:3450,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:2730},
+    {name:"Jia Ying",     balance:3900,  loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:3900},
+    {name:"Nishiora",     balance:5900,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:3980},
+    {name:"Jyun",         balance:4200,  loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:4200},
+    {name:"Gunbae",       balance:6150,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:4230},
+    {name:"AniNing",      balance:8000,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:6080},
+    {name:"Chion",        balance:8030,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:6110},
+    {name:"Mojo",         balance:17580, loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:16860},
+    {name:"RoO",          balance:37814, loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:37094},
+  ];
+
+  const csvMap={};
+  CSV.forEach(r=>{ csvMap[norm(r.name)]=r; });
+
+  let matched=0,skipped=0,notFound=[];
+  const players=[...S.players];
+  const CHUNK=400;
+  for(let i=0;i<players.length;i+=CHUNK){
+    const batch=writeBatch(_db);
+    players.slice(i,i+CHUNK).forEach(p=>{
+      const row=csvMap[norm(p.name)];
+      if(!row){notFound.push(p.name);skipped++;return;}
+      batch.update(doc(_db,'players',p.id),{
+        balance:       row.balance,
+        loanPrincipal: row.loanPrincipal,
+        interestOwed:  row.interestOwed,
+        debt:          row.debt,
+        netWorth:      row.netWorth,
+      });
+      matched++;
+    });
+    await batch.commit();
+  }
+  const msg=`✅ Resynced ${matched} players.${skipped?' ⚠️ '+skipped+' not in CSV: '+notFound.join(', '):''}`;
+  if(statusEl){statusEl.style.color='var(--green)';statusEl.textContent=msg;}
+  alert(msg);
+}
+
 async function resetPin(){
   const name=document.getElementById('reset-pin-player').value;
   if(!confirm(`Reset PIN for ${name}?`))return;
@@ -1588,27 +1951,131 @@ async function resetPin(){
   await _fsCfg({pins:newPins});alert('PIN reset for '+name);
 }
 function exportData(){
-  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({players:S.players,matches:S.matches,bets:S.bets},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='wwm_event_'+new Date().toISOString().slice(0,10)+'.json';a.click();
+  a.download='ninelives_semis_'+new Date().toISOString().slice(0,10)+'.json';a.click();
 }
-function importData(){
-  const inp=document.createElement('input');inp.type='file';inp.accept='.json';
-  inp.onchange=e=>{
-    const f=e.target.files[0];if(!f)return;
-    const r=new FileReader();
-    r.onload=ev=>{try{S={...S,...JSON.parse(ev.target.result)};save();alert('Imported!');location.reload();}catch{alert('Invalid JSON');}};
-    r.readAsText(f);
-  };inp.click();
+async function clearAllBets(){
+  if(!confirm('Wipe ALL bets from Firestore? This cannot be undone.'))return;
+  const snap=await getDocs(_col.bets());
+  const CHUNK=400;
+  const ids=snap.docs.map(d=>d.id);
+  for(let i=0;i<ids.length;i+=CHUNK){
+    const b=writeBatch(_db);
+    ids.slice(i,i+CHUNK).forEach(id=>b.delete(doc(_db,'bets',id)));
+    await b.commit();
+  }
+  alert('All bets wiped.');
 }
-function clearAll(){if(confirm('Reset ALL data?')){localStorage.removeItem('wwm_v4');location.reload();}}
 
-// ── REALTIME LISTENERS ──────────────────────
+// ── REALTIME LISTENERS ────────────────────────
+let _autoResyncDone=false; // run at most once per session
+async function _checkAndAutoResync(){
+  if(_autoResyncDone) return;
+  // Check if any CSV player is missing loanPrincipal in Firestore
+  const CSV_NAMES_WITH_LOANS=['Jahbs','Jjooo','Snorkie','Skylleria','iLYa','Petter','Gaia','OPM',
+    'Huangjii','xZel','Tsurea','HotBBQGrill','Mici','Dumamay','plop','Cozmo','xJunhaox','Serene',
+    'Seraliea','Feilong','Ogeypeko','Huakui','tsukiyue','Nishiora','Gunbae','AniNing','Chion','Mojo','RoO'];
+  const needsResync=S.players.some(p=>{
+    // If this player should have a loan but loanPrincipal is 0 or undefined, DB is stale
+    const shouldHaveLoan=CSV_NAMES_WITH_LOANS.includes(p.name);
+    return shouldHaveLoan && !(p.loanPrincipal>0);
+  });
+  if(needsResync){
+    console.log('Auto-resync: stale player economy detected, resyncing silently...');
+    _autoResyncDone=true;
+    await _silentResync();
+  }
+}
+
+async function _silentResync(){
+  const CSV=[
+    {name:"Jahbs",        balance:100,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1820},
+    {name:"Jjooo",        balance:200,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1720},
+    {name:"Snorkie",      balance:200,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1720},
+    {name:"Skylleria",    balance:250,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1670},
+    {name:"iLYa",         balance:300,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1620},
+    {name:"Petter",       balance:0,     loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:-720},
+    {name:"Gaia",         balance:250,   loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:-470},
+    {name:"OPM",          balance:700,   loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:-20},
+    {name:"Hel",          balance:0,     loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:0},
+    {name:"Sanhua",       balance:100,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:100},
+    {name:"Zia",          balance:100,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:100},
+    {name:"Huangjii",     balance:1050,  loanPrincipal:700,  interestOwed:140, debt:840,  netWorth:210},
+    {name:"Python",       balance:250,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:250},
+    {name:"xZel",         balance:2200,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:280},
+    {name:"AutisticPickle",balance:300,  loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
+    {name:"Cai",          balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
+    {name:"HaaanZ",       balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
+    {name:"Jade-Rooster", balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
+    {name:"Nshki",        balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
+    {name:"XE",           balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
+    {name:"XNeaR",        balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
+    {name:"Yumad",        balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
+    {name:"Tsurea",       balance:1050,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:330},
+    {name:"Angel (LilMilotic)",balance:400,loanPrincipal:0,  interestOwed:0,   debt:0,    netWorth:400},
+    {name:"Villya",       balance:400,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:400},
+    {name:"deeepeee",     balance:450,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:450},
+    {name:"OishiEdo",     balance:450,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:450},
+    {name:"Reito",        balance:500,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:500},
+    {name:"TK",           balance:500,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:500},
+    {name:"Lviv",         balance:600,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:600},
+    {name:"SirShadow",    balance:600,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:600},
+    {name:"Togez",        balance:600,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:600},
+    {name:"HotBBQGrill",  balance:850,   loanPrincipal:200,  interestOwed:40,  debt:240,  netWorth:610},
+    {name:"Mici",         balance:1000,  loanPrincipal:300,  interestOwed:60,  debt:360,  netWorth:640},
+    {name:"Alrenq",       balance:750,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:750},
+    {name:"YangKai",      balance:950,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:950},
+    {name:"Dumamay",      balance:2550,  loanPrincipal:1250, interestOwed:250, debt:1500, netWorth:1050},
+    {name:"Vorpalpledge", balance:1300,  loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:1300},
+    {name:"plop",         balance:2132,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:1412},
+    {name:"FortunaKirana",balance:1500,  loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:1500},
+    {name:"Cozmo",        balance:3480,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:1560},
+    {name:"xJunhaox",     balance:2950,  loanPrincipal:1000, interestOwed:200, debt:1200, netWorth:1750},
+    {name:"Serene",       balance:3800,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:1880},
+    {name:"Seraliea",     balance:2700,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:1980},
+    {name:"Feilong",      balance:3000,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:2280},
+    {name:"Ogeypeko",     balance:3000,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:2280},
+    {name:"Huakui",       balance:3550,  loanPrincipal:800,  interestOwed:160, debt:960,  netWorth:2590},
+    {name:"tsukiyue",     balance:3450,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:2730},
+    {name:"Jia Ying",     balance:3900,  loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:3900},
+    {name:"Nishiora",     balance:5900,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:3980},
+    {name:"Jyun",         balance:4200,  loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:4200},
+    {name:"Gunbae",       balance:6150,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:4230},
+    {name:"AniNing",      balance:8000,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:6080},
+    {name:"Chion",        balance:8030,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:6110},
+    {name:"Mojo",         balance:17580, loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:16860},
+    {name:"RoO",          balance:37814, loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:37094},
+  ];
+  const csvMap={};
+  CSV.forEach(r=>{csvMap[norm(r.name)]=r;});
+  const players=[...S.players];
+  const CHUNK=400;
+  for(let i=0;i<players.length;i+=CHUNK){
+    const batch=writeBatch(_db);
+    players.slice(i,i+CHUNK).forEach(p=>{
+      const row=csvMap[norm(p.name)]; if(!row) return;
+      batch.update(doc(_db,'players',p.id),{
+        balance:       row.balance,
+        loanPrincipal: row.loanPrincipal,
+        interestOwed:  row.interestOwed,
+        debt:          row.debt,
+        netWorth:      row.netWorth,
+      });
+    });
+    await batch.commit();
+  }
+  console.log('Auto-resync complete.');
+}
+
 function subscribeAll(){
   _unsubs.forEach(u=>u());_unsubs=[];
   _unsubs.push(onSnapshot(_col.players(),snap=>{
     S.players=snap.docs.map(d=>({id:d.id,...d.data()}));
     S.players.sort((a,b)=>a.name.localeCompare(b.name));
+    // Auto-resync: if any player from the CSV is missing loanPrincipal or has stale debt,
+    // silently run the economy resync to fix stale Firestore docs.
+    _checkAndAutoResync();
     refreshCurrentView();
   }));
   _unsubs.push(onSnapshot(_col.matches(),snap=>{
@@ -1620,374 +2087,102 @@ function subscribeAll(){
     S.bets=snap.docs.map(d=>({id:d.id,...d.data()}));
     refreshCurrentView();
   }));
-  _unsubs.push(onSnapshot(_col.loans(),snap=>{
-    S.loans=snap.docs.map(d=>({id:d.id,...d.data()}));
-    refreshCurrentView();
-  }));
-  _unsubs.push(onSnapshot(_col.adjustments(),snap=>{
-    S.adjustments=snap.docs.map(d=>({id:d.id,...d.data()}));
-    refreshCurrentView();
-  }));
   _unsubs.push(onSnapshot(_cfgDoc(),snap=>{
-    if(snap.exists()){const d=snap.data();Object.assign(S,{loanRounds:d.loanRounds||S.loanRounds,currentRound:d.currentRound||S.currentRound,pins:d.pins||{},collapsedRounds:d.collapsedRounds||{}});}
+    if(snap.exists()){
+      const d=snap.data();
+      S.loanOpen=d.loanOpen||false;
+      S.pins=d.pins||{};
+      S.debtCapHistory=d.debtCapHistory||[];
+      S.maxDebt=S.debtCapHistory.length>0
+        ? S.debtCapHistory.reduce((s,e)=>s+(e.amount||0),0)
+        : (d.maxDebt||0);
+    }
     refreshCurrentView();
   }));
   _setSyncDot('live');
 }
 
 function refreshCurrentView(){
-  if(!S.currentUser)return;
+  if(!S.currentUser) return;
   if(isAdmin){
-    if(_curATab==='a-matches')renderAMatches();
-    else if(_curATab==='a-players')renderAPlayers();
-    else if(_curATab==='a-bank')renderABank();
-    else if(_curATab==='a-audience')renderAudience();
-    else if(_curATab==='a-corrections')renderACorrections();
+    if(_curATab==='a-matches')     renderAMatches();
+    else if(_curATab==='a-players') renderAPlayers();
+    else if(_curATab==='a-bank')    renderABank();
+    else if(_curATab==='a-corrections') renderACorrections();
   } else {
     refreshStats();
-    if(_curPTab==='p-matches')renderPMatches();
-    else if(_curPTab==='p-leaderboard')renderLeaderboard();
-    else if(_curPTab==='p-mybets')renderMyBets();
-    else if(_curPTab==='p-bank')renderPBank();
+    if(_curPTab==='p-matches')     renderPMatches();
+    else if(_curPTab==='p-leaderboard') renderLeaderboard();
+    else if(_curPTab==='p-mybets') renderMyBets();
+    else if(_curPTab==='p-bank') renderPlayerBank();
   }
 }
 
-// ── ADMIN: CORRECTIONS ──────────────────────
-// Full bet and adjustment correction system.
-// All writes go directly to Firestore. Edits stamp adminNote + adminEditedAt.
-// Players cannot reach any of these functions — admin-only.
-
-let _corrView='match'; // 'match' | 'player'
-
-function renderACorrections(){
-  const matchOpts=S.matches.map(m=>`<option value="${m.id}">${m.id}: ${m.p1} vs ${m.p2} (${m.status})</option>`).join('');
-  const playerOpts=[...S.players].sort((a,b)=>a.name.localeCompare(b.name))
-    .map(p=>`<option value="${p.name}">${p.name}</option>`).join('');
-
-  // Adjustment rows (last 100, newest first)
-  const adjRows=[...(S.adjustments||[])].reverse().slice(0,100).map(a=>`<tr>
-    <td style="font-size:12px">${a.playerName}</td>
-    <td style="text-align:right;color:${a.delta>=0?'var(--green)':'var(--red)'}">${a.delta>=0?'+':''}${fmt(a.delta)}</td>
-    <td style="font-size:12px;color:var(--text-dim);max-width:180px;overflow:hidden;text-overflow:ellipsis">${(a.reason||'').slice(0,50)}</td>
-    <td style="font-size:11px;color:var(--text-dim)">${(a.date||'').slice(0,10)}</td>
-    <td><button class="btn btn-sm btn-danger" onclick="deleteAdj('${a.id}')">Delete</button></td>
-  </tr>`).join('');
-
-  document.getElementById('a-corrections').innerHTML=`
-    <div class="alert alert-gold" style="margin-bottom:14px">
-      <strong>Corrections panel</strong> — writes go directly to Firestore.
-      Edits are stamped with a reason and timestamp for auditability. Prefer soft-void over hard delete.
-    </div>
-
-    <div style="margin-bottom:14px">
-      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">View bets by</div>
-      <div class="btn-row">
-        <button class="btn btn-sm ${_corrView==='match'?'btn-gold':''}" onclick="setCorrView('match')">Match</button>
-        <button class="btn btn-sm ${_corrView==='player'?'btn-gold':''}" onclick="setCorrView('player')">Player</button>
-      </div>
-    </div>
-
-    <div id="corr-selector-match" ${_corrView!=='match'?'style="display:none"':''}>
-      <div class="fg"><label class="lbl">Select match</label>
-        <select id="corr-match-sel" onchange="loadCorrBets('match')">${matchOpts}</select>
-      </div>
-    </div>
-    <div id="corr-selector-player" ${_corrView!=='player'?'style="display:none"':''}>
-      <div class="fg"><label class="lbl">Select player</label>
-        <select id="corr-player-sel" onchange="loadCorrBets('player')">${playerOpts}</select>
-      </div>
-    </div>
-
-    <div id="corr-bets-table">
-      <div style="color:var(--text-dim);font-size:13px;padding:8px 0">Select a match or player above to view bets.</div>
-    </div>
-
-    <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin:24px 0 8px;padding-bottom:6px;border-bottom:0.5px solid var(--border)">Adjustments (last 100)</div>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>Player</th><th style="text-align:right">Delta</th><th>Reason</th><th>Date</th><th></th></tr></thead>
-      <tbody>${adjRows||'<tr><td colspan="5" style="text-align:center;color:var(--text-dim)">No adjustments</td></tr>'}</tbody>
-    </table></div>`;
-}
-
-function setCorrView(view){
-  _corrView=view;
-  // Toggle selector visibility
-  const mEl=document.getElementById('corr-selector-match');
-  const pEl=document.getElementById('corr-selector-player');
-  if(mEl) mEl.style.display=view==='match'?'':'none';
-  if(pEl) pEl.style.display=view==='player'?'':'none';
-  // Update button styles
-  document.querySelectorAll('#a-corrections .btn-sm').forEach(b=>{
-    b.classList.toggle('btn-gold',
-      (b.textContent==='Match'&&view==='match')||(b.textContent==='Player'&&view==='player'));
-  });
-  document.getElementById('corr-bets-table').innerHTML=
-    '<div style="color:var(--text-dim);font-size:13px;padding:8px 0">Select a match or player above to view bets.</div>';
-}
-
-function loadCorrBets(mode){
-  mode=mode||_corrView;
-  let bets, title;
-  if(mode==='match'){
-    const matchId=document.getElementById('corr-match-sel')?.value;
-    if(!matchId) return;
-    const m=S.matches.find(x=>x.id===matchId);
-    bets=S.bets.filter(b=>b.matchId===matchId);
-    title=matchId+(m?`: ${m.p1} vs ${m.p2}`:'');
-  } else {
-    const player=document.getElementById('corr-player-sel')?.value;
-    if(!player) return;
-    bets=S.bets.filter(b=>norm(b.playerName)===norm(player));
-    title=`All bets for ${player}`;
+// ── BET PLACEMENT ──
+async function submitBetWithDeduct(matchId){
+  const pick=document.getElementById('bet-pick').value;
+  const amount=parseInt(document.getElementById('bet-amount').value);
+  const p_val=getPlayer(S.currentUser);
+  const curBal=(p_val?.balance)||0;
+  if(!amount||amount<=0){showErr('bet-error','Enter a valid amount');return;}
+  if(amount>curBal){showErr('bet-error',`Not enough balance (have ${fmt(curBal)} CC)`);return;}
+  const m=S.matches.find(x=>x.id===matchId);
+  if(m){
+    const user=norm(S.currentUser);
+    if(user===norm(m.p1)&&norm(pick)===norm(m.p2)){showErr('bet-error','You cannot bet on your opponent');return;}
+    if(user===norm(m.p2)&&norm(pick)===norm(m.p1)){showErr('bet-error','You cannot bet on your opponent');return;}
   }
+  const btn=document.querySelector('#bet-modal .btn-gold:last-child');
+  if(btn){btn.disabled=true;btn.textContent='Placing...';}
 
-  if(!bets.length){
-    document.getElementById('corr-bets-table').innerHTML='<div class="alert alert-info" style="margin-top:8px">No bets found.</div>';
-    return;
+  // Write bet + deduct from available in one batch
+  const p=getPlayer(S.currentUser);
+  const batch=writeBatch(_db);
+  const betId='b'+Date.now();
+  batch.set(doc(_db,'bets',betId),{matchId,playerName:S.currentUser,pick,amount,result:null,stakeInBalance:false});
+  if(p&&p.id){
+    const newBal=Math.round((p.balance||0)-amount);
+    const newNW=newBal-(p.debt||0);
+    batch.update(doc(_db,'players',p.id),{balance:newBal,netWorth:newNW});
   }
-
-  // Sort: pending first, then by match id
-  const sorted=[...bets].sort((a,b)=>{
-    if((a.result===null)!==(b.result===null)) return a.result===null?-1:1;
-    return (a.matchId||'').localeCompare(b.matchId||'');
-  });
-
-  const allPlayerOpts=[...S.players].sort((a,b)=>a.name.localeCompare(b.name))
-    .map(p=>`<option value="${p.name}">${p.name}</option>`).join('');
-
-  const rows=sorted.map(b=>{
-    const m=S.matches.find(x=>x.id===b.matchId);
-    const p1=m?m.p1:'?', p2=m?m.p2:'?';
-    const pickOpts=`<option value="${p1}" ${b.pick===p1?'selected':''}>${p1}</option>
-      <option value="${p2}" ${b.pick===p2?'selected':''}>${p2}</option>`;
-    const resOpts=['won','lost','walkover','voided','null'].map(r=>
-      `<option value="${r}" ${String(b.result)===r?'selected':''}>${r==='null'?'pending':r}</option>`
-    ).join('');
-    const bettorOpts=allPlayerOpts.replace(
-      `value="${b.playerName}"`,`value="${b.playerName}" selected`);
-    const statusColor=b.result===null?'var(--gold)':b.result==='won'?'var(--green)':
-      b.result==='voided'||b.result==='walkover'?'var(--text-dim)':'var(--red)';
-    const adminStamp=b.adminNote
-      ? `<div style="font-size:11px;color:var(--text-dim);margin-top:4px">
-           📝 ${b.adminNote}${b.adminEditedAt?' · '+b.adminEditedAt.slice(0,10):''}</div>`
-      : '';
-    return `
-    <div style="background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);
-         padding:12px 14px;margin-bottom:8px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-        <span style="font-size:11px;color:var(--gold);font-family:'Cinzel',serif">${b.matchId}</span>
-        <span style="font-size:11px;color:var(--text-dim)">${p1} vs ${p2}</span>
-        <span style="font-size:11px;color:${statusColor};background:rgba(0,0,0,.2);
-              padding:1px 7px;border-radius:3px;margin-left:auto">${b.result===null?'pending':b.result}</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
-        <div><label class="lbl" style="margin-bottom:3px">Bettor</label>
-          <select id="cb-bettor-${b.id}" style="font-size:12px;padding:4px 8px">${bettorOpts}</select>
-        </div>
-        <div><label class="lbl" style="margin-bottom:3px">Pick</label>
-          <select id="cb-pick-${b.id}" style="font-size:12px;padding:4px 8px">${pickOpts}</select>
-        </div>
-        <div><label class="lbl" style="margin-bottom:3px">Amount</label>
-          <input type="number" id="cb-amt-${b.id}" value="${b.amount}" min="1"
-            style="font-size:12px;padding:4px 8px" />
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-        <div><label class="lbl" style="margin-bottom:3px">Result</label>
-          <select id="cb-res-${b.id}" style="font-size:12px;padding:4px 8px">${resOpts}</select>
-        </div>
-        <div><label class="lbl" style="margin-bottom:3px">Reason / note <span style="color:var(--red)">*required for edits</span></label>
-          <input type="text" id="cb-note-${b.id}" placeholder="e.g. Wrong pick entered by admin"
-            style="font-size:12px;padding:4px 8px" value="${b.adminNote||''}" />
-        </div>
-      </div>
-      ${adminStamp}
-      <div class="btn-row" style="margin-top:4px">
-        <button class="btn btn-sm btn-gold" onclick="saveBetEdit('${b.id}')">Save changes</button>
-        <button class="btn btn-sm btn-danger" onclick="voidBet('${b.id}')">Soft void</button>
-        <button class="btn btn-sm btn-danger" style="opacity:.6" onclick="hardDeleteBet('${b.id}')">Hard delete</button>
-      </div>
-      <div id="cb-msg-${b.id}" style="font-size:12px;margin-top:6px;display:none"></div>
-    </div>`;
-  }).join('');
-
-  document.getElementById('corr-bets-table').innerHTML=`
-    <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;
-         margin:4px 0 10px;padding-bottom:6px;border-bottom:0.5px solid var(--border)">
-      ${title} — ${sorted.length} bet(s)
-    </div>
-    ${rows}`;
+  await batch.commit();
+  closeModal('bet-modal');
 }
 
-async function saveBetEdit(betId){
-  const note=(document.getElementById('cb-note-'+betId)?.value||'').trim();
-  if(!note){
-    const msg=document.getElementById('cb-msg-'+betId);
-    if(msg){msg.style.display='block';msg.style.color='var(--red)';msg.textContent='Reason is required before saving.';}
-    return;
-  }
-  const newBettor=document.getElementById('cb-bettor-'+betId)?.value;
-  const newPick  =document.getElementById('cb-pick-'+betId)?.value;
-  const newAmt   =parseInt(document.getElementById('cb-amt-'+betId)?.value);
-  const newRes   =document.getElementById('cb-res-'+betId)?.value;
-  if(isNaN(newAmt)||newAmt<=0){
-    const msg=document.getElementById('cb-msg-'+betId);
-    if(msg){msg.style.display='block';msg.style.color='var(--red)';msg.textContent='Amount must be a positive number.';}
-    return;
-  }
-  const result=newRes==='null'?null:newRes;
-  await _fsUpd('bets',betId,{
-    playerName:newBettor, pick:newPick, amount:newAmt, result,
-    adminNote:note, adminEditedAt:new Date().toISOString()
-  });
-  const msg=document.getElementById('cb-msg-'+betId);
-  if(msg){msg.style.display='block';msg.style.color='var(--green)';msg.textContent='✓ Saved';}
-  // onSnapshot will refresh the full view; also inline-refresh the table
-  setTimeout(()=>loadCorrBets(_corrView),400);
-}
-
-async function voidBet(betId){
-  const note=(document.getElementById('cb-note-'+betId)?.value||'').trim();
-  if(!note){
-    const msg=document.getElementById('cb-msg-'+betId);
-    if(msg){msg.style.display='block';msg.style.color='var(--red)';msg.textContent='Add a reason before voiding.';}
-    return;
-  }
-  if(!confirm('Soft-void this bet? The record is kept but has no balance effect.'))return;
-  await _fsUpd('bets',betId,{
-    result:'voided', adminNote:note, adminEditedAt:new Date().toISOString()
-  });
-  setTimeout(()=>loadCorrBets(_corrView),400);
-}
-
-async function hardDeleteBet(betId){
-  const note=(document.getElementById('cb-note-'+betId)?.value||'').trim();
-  if(!note){
-    const msg=document.getElementById('cb-msg-'+betId);
-    if(msg){msg.style.display='block';msg.style.color='var(--red)';msg.textContent='Add a reason before deleting.';}
-    return;
-  }
-  if(!confirm('HARD DELETE this bet?\n\nThis permanently removes the record from Firestore and cannot be undone.\nConsider soft-void instead.'))return;
-  await _fsDel('bets',betId);
-  setTimeout(()=>loadCorrBets(_corrView),400);
-}
-
-async function deleteAdj(adjId){
-  if(!confirm('Delete this adjustment? This cannot be undone.'))return;
-  await _fsDel('adjustments', adjId);
-}
-
-// ── CONNECT INLINE HANDLERS TO GLOBAL SCOPE ──────
-Object.assign(globalThis, {
-  startLogin,
-  showLogin,
-  showAdminLogin,
-  showRegister,
-  loginAdmin,
-  logout,
-  playerTab,
-  adminTab,
-  closeModal,
-  toggleRound,
-  takeLoan,
-  openBetModal,
-  submitBet,
-  toggleBetting,
-  declareWinner,
-  declareWalkover,
-  deleteMatch,
-  openAddMatchModal,
-  editMatch,
-  submitAddMatch,
-  submitEditMatch,
-  changeStatus,
-  submitAddPlayer,
-  openAdjust,
-  submitAdjust,
-  toggleLR,
-  updateLRMax,
-  markRepaid,
-  parseAudience,
-  awardOne,
-  resetPin,
-  exportData,
-  importData,
-  clearAll,
-  renderACorrections,
-  setCorrView,
-  loadCorrBets,
-  saveBetEdit,
-  voidBet,
-  hardDeleteBet,
-  deleteAdj
+// ── EXPOSE TO GLOBAL SCOPE ────────────────────
+Object.assign(globalThis,{
+  startLogin, showLogin, showAdminLogin, showRegister, loginAdmin, logout,
+  playerTab, adminTab, closeModal,
+  openBetModal, openRankedBetModal, submitRankedBet, toggleMatchTypeFields,
+  openRankedResultModal, declareRankedResult,
+  submitBet: submitBetWithDeduct,
+  toggleBetting, declareWinner, reopenMatch, declareWalkover, deleteMatch,
+  openAddMatchModal, editMatch, submitAddMatch, submitEditMatch,
+  changeStatus, submitAddPlayer,
+  openEditBalance, submitEditBalance,
+  toggleLoanOpen, addDebtCapRound, removeDebtCapRound,
+  reopenMatch, takeLoan,
+  applyGovAid, undoGovAid,
+  renderACorrections, setCorrView, loadCorrBets, saveBetEdit, voidBet, hardDeleteBet,
+  resetPin, exportData, clearAllBets, resyncPlayersFromCSV,
 });
 
-// ── ONE-TIME CORRECTIONS ────────────────────
-// Each entry writes to Firestore exactly once (skips if doc already has the target value).
-// Safe to re-run on every boot.
-async function applyOneTimeCorrections(){
-  const corrections=[
-    // ── Bet integrity correction ──────────────────────────────────────────
-    // Void Mojo's M17 bet on OPM (1000 coins).
-    // Mojo is a competitor in M17 (OPM vs tsukiyue) and cannot bet on their opponent.
-    // Soft-void preserves the record; result='voided' has zero net effect on balance.
-    {collection:'bets', id:'b_m17_3', field:'result', value:'voided',
-     note:'Integrity correction: Mojo cannot bet on opponent OPM in M17'},
-
-    // ── Seed loan round-assignment corrections ────────────────────────────
-    // The original seed placed all loan principal as loanRound=1, but R1 cap=600.
-    // Any amount above 600 per player belonged in R2 (cap=1000).
-    // Correction: change loanRound from 1→2 for the overflow docs.
-    // Principal, amount, and repaid status are all unchanged. Debt totals unchanged.
-    {collection:'loans', id:'l_r1_0_1',  field:'loanRound', value:2, note:'Seed fix: AniNing 600c R1 overflow -> R2'},
-    {collection:'loans', id:'l_r1_1_1',  field:'loanRound', value:2, note:'Seed fix: Chion 600c R1 overflow -> R2'},
-    {collection:'loans', id:'l_r1_1_2',  field:'loanRound', value:2, note:'Seed fix: Chion 400c R1 overflow -> R2'},
-    {collection:'loans', id:'l_r1_2_1',  field:'loanRound', value:2, note:'Seed fix: Cozmo 600c R1 overflow -> R2'},
-    {collection:'loans', id:'l_r1_2_2',  field:'loanRound', value:2, note:'Seed fix: Cozmo 400c R1 overflow -> R2'},
-    {collection:'loans', id:'l_r1_3_1',  field:'loanRound', value:2, note:'Seed fix: Dumamay 600c R1 overflow -> R2'},
-    {collection:'loans', id:'l_r1_3_2',  field:'loanRound', value:2, note:'Seed fix: Dumamay 50c R1 overflow -> R2'},
-    {collection:'loans', id:'l_r1_6_1',  field:'loanRound', value:2, note:'Seed fix: Gunbae 600c R1 overflow -> R2'},
-    {collection:'loans', id:'l_r1_6_2',  field:'loanRound', value:2, note:'Seed fix: Gunbae 400c R1 overflow -> R2'},
-    {collection:'loans', id:'l_r1_8_1',  field:'loanRound', value:2, note:'Seed fix: HuaKui 200c R1 overflow -> R2'},
-    {collection:'loans', id:'l_r1_9_1',  field:'loanRound', value:2, note:'Seed fix: HuangJii 100c R1 overflow -> R2'},
-    {collection:'loans', id:'l_r1_10_1', field:'loanRound', value:2, note:'Seed fix: iLYa 70c R1 overflow -> R2'},
-    {collection:'loans', id:'l_r1_12_1', field:'loanRound', value:2, note:'Seed fix: Jjooo 600c R1 overflow -> R2'},
-    {collection:'loans', id:'l_r1_12_2', field:'loanRound', value:2, note:'Seed fix: Jjooo 400c R1 overflow -> R2'},
-    {collection:'loans', id:'l_r1_15_1', field:'loanRound', value:2, note:'Seed fix: Nishiora 600c R1 overflow -> R2'},
-    {collection:'loans', id:'l_r1_15_2', field:'loanRound', value:2, note:'Seed fix: Nishiora 400c R1 overflow -> R2'},
-    {collection:'loans', id:'l_r1_23_1', field:'loanRound', value:2, note:'Seed fix: Skylleria 600c R1 overflow -> R2'},
-    {collection:'loans', id:'l_r1_23_2', field:'loanRound', value:2, note:'Seed fix: Skylleria 400c R1 overflow -> R2'},
-    {collection:'loans', id:'l_r1_26_1', field:'loanRound', value:2, note:'Seed fix: xJunhaox 400c R1 overflow -> R2'},
-    {collection:'loans', id:'l_r1_27_1', field:'loanRound', value:2, note:'Seed fix: xZel 600c R1 overflow -> R2'},
-    {collection:'loans', id:'l_r1_27_2', field:'loanRound', value:2, note:'Seed fix: xZel 400c R1 overflow -> R2'},
-  ];
-  for(const c of corrections){
-    try{
-      const ref=doc(_db,c.collection,c.id);
-      const snap=await getDoc(ref);
-      if(!snap.exists()){console.log('Correction target not found:',c.id);continue;}
-      if(snap.data()[c.field]===c.value){console.log('Correction already applied:',c.id);continue;}
-      await updateDoc(ref,{[c.field]:c.value});
-      console.log('Applied correction:',c.id,'→',c.field,'=',c.value,'|',c.note);
-    } catch(e){console.error('Correction failed:',c.id,e);}
-  }
-}
-
-// ── BOOT ────────────────────────────────────
+// ── BOOT ──────────────────────────────────────
 async function boot(){
   try{
+    document.getElementById('loading-msg').textContent='Loading event data...';
     await initDefault();
-    await applyOneTimeCorrections();
     subscribeAll();
     await new Promise(r=>setTimeout(r,900));
     populateDropdown();
     buildKeypad('pin-keypad',pinKey);
     buildKeypad('reg-keypad',regKey);
-    document.getElementById('loading-screen').classList.add('hidden');
+    document.getElementById('loading-screen').style.display='none';
     showScreen('login-screen');
   } catch(e){
     console.error(e);
-    const lm=document.getElementById('loading-msg');if(lm)lm.textContent='Error: '+e.message;
+    const lm=document.getElementById('loading-msg');
+    if(lm) lm.textContent='Error: '+e.message;
   }
 }
 boot();
