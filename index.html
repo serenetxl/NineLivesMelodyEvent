@@ -103,6 +103,7 @@ tr:hover td{background:rgba(201,168,76,.03)}
   .auth-card{padding:40px}
 }
 @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
 </style>
 </head>
 <body>
@@ -198,11 +199,13 @@ tr:hover td{background:rgba(201,168,76,.03)}
       <button class="tab" onclick="playerTab(this,'p-leaderboard')">Leaderboard</button>
       <button class="tab" onclick="playerTab(this,'p-mybets')">My Bets</button>
       <button class="tab" onclick="playerTab(this,'p-bank')">🏦 Cat Bank</button>
+      <button class="tab" onclick="playerTab(this,'p-livebets')">🔴 Live Bets</button>
     </div>
     <div id="p-matches"></div>
     <div id="p-leaderboard" class="hidden"></div>
     <div id="p-mybets" class="hidden"></div>
     <div id="p-bank" class="hidden"></div>
+    <div id="p-livebets" class="hidden"></div>
   </div>
 </div>
 
@@ -222,10 +225,12 @@ tr:hover td{background:rgba(201,168,76,.03)}
       <button class="tab" onclick="adminTab(this,'a-bank')">Economy</button>
       <button class="tab" onclick="adminTab(this,'a-corrections')">Corrections</button>
       <button class="tab" onclick="adminTab(this,'a-settings')">Settings</button>
+      <button class="tab" onclick="adminTab(this,'a-livebets')">🔴 Live Bets</button>
     </div>
     <div id="a-matches"></div>
     <div id="a-players" class="hidden"></div>
     <div id="a-bank" class="hidden"></div>
+    <div id="a-livebets" class="hidden"></div>
     <div id="a-corrections" class="hidden"></div>
     <div id="a-settings" class="hidden"></div>
   </div>
@@ -565,23 +570,25 @@ function playerTab(el,id){
   _curPTab=id;
   document.querySelectorAll('#player-screen .tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  ['p-matches','p-leaderboard','p-mybets','p-bank'].forEach(x=>{const e=document.getElementById(x);if(e)e.classList.add('hidden');});
+  ['p-matches','p-leaderboard','p-mybets','p-bank','p-livebets'].forEach(x=>{const e=document.getElementById(x);if(e)e.classList.add('hidden');});
   document.getElementById(id).classList.remove('hidden');
   if(id==='p-leaderboard') renderLeaderboard();
   if(id==='p-mybets') renderMyBets();
   if(id==='p-bank') renderPlayerBank();
+  if(id==='p-livebets') renderLiveBets('p-livebets');
 }
 function adminTab(el,id){
   _curATab=id;
   document.querySelectorAll('#admin-screen .tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  ['a-matches','a-players','a-bank','a-corrections','a-settings'].forEach(x=>document.getElementById(x).classList.add('hidden'));
+  ['a-matches','a-players','a-bank','a-corrections','a-settings','a-livebets'].forEach(x=>document.getElementById(x).classList.add('hidden'));
   document.getElementById(id).classList.remove('hidden');
   if(id==='a-matches')     renderAMatches();
   if(id==='a-players')     renderAPlayers();
   if(id==='a-bank')        renderABank();
   if(id==='a-corrections') renderACorrections();
   if(id==='a-settings')    renderASettings();
+  if(id==='a-livebets')    renderLiveBets('a-livebets');
 }
 
 // ── HELPERS ──────────────────────────────────
@@ -666,7 +673,7 @@ function renderPMatches(){
           });
           pickDisplay=parts.join(' · ');
           const correctNote=b.correctPositions!=null?` (${b.correctPositions}/3 correct)`:'';
-          const res=b.result==='won'?` — Won ${fmt(b.amount*6)} 🎉 (all 3 correct!)`
+          const res=b.result==='won'?` — Won ${fmt(b.amount*(b.correctPositions===1?2:b.correctPositions===2?4:6))} 🎉${correctNote}`
             :b.result==='lost'?` — Lost 💸`
             :' — Pending';
           return `${fmt(b.amount)} CC:<br>${pickDisplay}${res}`;
@@ -690,7 +697,7 @@ function renderPMatches(){
             }).join('')}
           </div>
           ${m.winner&&m.winner!=='Walkover'?`<div class="alert alert-success" style="margin-top:8px;padding:6px 10px;font-size:12px">Result: ${m.winner.split('|').map(r=>{const[p,n]=r.split(':');const medals=['','🥇','🥈','🥉'];return medals[parseInt(p)]+' '+n;}).join(' · ')}</div>`:''}
-          <div style="font-size:11px;color:var(--text-dim);margin-top:6px">Total staked: ${fmt(totalPot)} CC · Payout: all 3 exact → 6× · partial = no payout</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:6px">Total staked: ${fmt(totalPot)} CC · Payout: 1 correct 2× · 2 correct 4× · 3 correct 6×</div>
         </div>`
       : `<div class="match-vs">
           <div class="match-player">
@@ -849,7 +856,7 @@ function openRankedBetModal(matchId){
     <div class="fg"><label class="lbl">Bet amount — balance: ${fmt(bal)} CC</label>
       <input type="number" id="bet-amount" min="1" max="${bal}" placeholder="Amount..." /></div>
     <div class="alert alert-gold" style="margin-bottom:14px;font-size:12px">
-      Get ALL 3 placements correct (exact order) → 6× payout. Partial = no payout.<br>
+      1 correct position → 2× · 2 correct → 4× · 3 correct (exact order) → 6×<br>
       Only exact position matches count.
     </div>
     <div id="bet-error" class="alert alert-danger hidden"></div>
@@ -1028,6 +1035,161 @@ async function takeLoan(){
   refreshStats();
 }
 
+
+// ── LIVE BETS VIEW ────────────────────────────
+function renderLiveBets(containerId){
+  const el=document.getElementById(containerId);
+  if(!el) return;
+
+  // Group bets by match
+  const matchMap={};
+  S.matches.forEach(m=>{
+    matchMap[m.id]={match:m, bets:[]};
+  });
+  S.bets.forEach(b=>{
+    if(b.result==='voided') return; // skip voided
+    if(matchMap[b.matchId]) matchMap[b.matchId].bets.push(b);
+  });
+
+  // Sort matches: open betting first, then pending, then done
+  const sorted=S.matches.slice().sort((a,b)=>{
+    const rank=m=>m.bettingOpen?0:m.status==='pending'?1:2;
+    return rank(a)-rank(b)||(a.id||'').localeCompare(b.id||'');
+  });
+
+  const totalActiveBets=S.bets.filter(b=>b.result===null&&b.result!=='voided').length;
+  const totalPot=S.bets.filter(b=>b.result!=='voided').reduce((s,b)=>s+b.amount,0);
+
+  let html=`
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
+      <div style="background:var(--bg3);border-radius:var(--radius);padding:12px;text-align:center">
+        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Active bets</div>
+        <div style="font-family:'Cinzel',serif;font-size:22px;color:var(--gold)">${totalActiveBets}</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:var(--radius);padding:12px;text-align:center">
+        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total CC at stake</div>
+        <div style="font-family:'Cinzel',serif;font-size:22px;color:var(--gold)">${fmt(totalPot)}</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:var(--radius);padding:12px;text-align:center">
+        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Matches</div>
+        <div style="font-family:'Cinzel',serif;font-size:22px;color:var(--gold)">${S.matches.length}</div>
+      </div>
+    </div>`;
+
+  if(sorted.length===0){
+    html+='<div class="alert alert-info">No matches yet.</div>';
+    el.innerHTML=html; return;
+  }
+
+  sorted.forEach(m=>{
+    const bets=(matchMap[m.id]?.bets||[]);
+    const activeBets=bets.filter(b=>b.result===null);
+    const isRanked=m.matchType==='ranked';
+    const contestants=(m.contestants||m.p1||'').split(',').map(s=>s.trim()).filter(Boolean);
+
+    // Build pot data
+    let potHtml='';
+    if(isRanked){
+      const totalRanked=bets.reduce((s,b)=>s+b.amount,0);
+      potHtml=`<div style="font-size:12px;color:var(--text-dim);margin-bottom:10px">
+        Total staked: <strong style="color:var(--gold)">${fmt(totalRanked)} CC</strong> across ${bets.length} bet(s)
+      </div>`;
+    } else {
+      const p1pot=bets.filter(b=>norm(b.pick)===norm(m.p1)).reduce((s,b)=>s+b.amount,0);
+      const p2pot=bets.filter(b=>norm(b.pick)===norm(m.p2)).reduce((s,b)=>s+b.amount,0);
+      const total=p1pot+p2pot;
+      const p1pct=total>0?Math.round(p1pot/total*100):50;
+      const p2pct=total>0?100-p1pct:50;
+      potHtml=`
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+            <span style="color:var(--text);font-weight:500">${m.p1}</span>
+            <span style="color:var(--text);font-weight:500">${m.p2}</span>
+          </div>
+          <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--bg3)">
+            <div style="width:${p1pct}%;background:var(--gold);transition:width .4s"></div>
+            <div style="width:${p2pct}%;background:var(--blue);transition:width .4s"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:3px;color:var(--text-dim)">
+            <span>${fmt(p1pot)} CC (${p1pct}%)</span>
+            <span>${fmt(p2pot)} CC (${p2pct}%)</span>
+          </div>
+        </div>`;
+    }
+
+    // Individual bet rows
+    let betRows='';
+    if(bets.length===0){
+      betRows='<div style="color:var(--text-dim);font-size:12px;padding:8px 0">No bets placed yet.</div>';
+    } else {
+      // Sort: pending first, then settled; within each group by amount desc
+      const sorted2=[...bets].sort((a,b)=>{
+        if((a.result===null)!==(b.result===null)) return a.result===null?-1:1;
+        return b.amount-a.amount;
+      });
+      betRows=sorted2.map(b=>{
+        const isMe=norm(b.playerName)===norm(S.currentUser);
+        let pickDisplay=b.pick;
+        if(b.betType==='ranked'){
+          const parts=(b.pick||'').split('|').map(part=>{
+            const[pos,name]=part.split(':');
+            const medals=['','🥇','🥈','🥉'];
+            return (medals[parseInt(pos)]||pos+':')+' '+name;
+          });
+          pickDisplay=parts.join(' · ');
+        }
+        const resultTag=b.result===null
+          ?`<span style="font-size:10px;background:rgba(201,168,76,.15);color:var(--gold);border:0.5px solid rgba(201,168,76,.3);border-radius:3px;padding:1px 6px">PENDING</span>`
+          :b.result==='won'
+          ?`<span style="font-size:10px;background:var(--green-bg);color:var(--green);border:0.5px solid rgba(74,156,110,.3);border-radius:3px;padding:1px 6px">WON +${fmt(b.betType==='ranked'?b.amount*6:b.amount*BET_MULT)}</span>`
+          :b.result==='lost'
+          ?`<span style="font-size:10px;background:var(--red-bg);color:var(--red);border:0.5px solid rgba(192,64,64,.3);border-radius:3px;padding:1px 6px">LOST</span>`
+          :`<span style="font-size:10px;background:var(--bg3);color:var(--text-dim);border:0.5px solid var(--border);border-radius:3px;padding:1px 6px">${b.result?.toUpperCase()||'—'}</span>`;
+        return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:0.5px solid rgba(201,168,76,.06)">
+          <div class="avatar" style="${avStyle(b.playerName)};width:26px;height:26px;font-size:10px;flex-shrink:0">${initials(b.playerName)}</div>
+          <div style="flex:1;min-width:0">
+            <span style="font-weight:${isMe?'600':'400'};font-size:13px">${b.playerName}${isMe?' <span style="font-size:10px;color:var(--text-dim)">(you)</span>':''}</span>
+            <div style="font-size:11px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${pickDisplay}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold)">${fmt(b.amount)} CC</div>
+            <div style="margin-top:2px">${resultTag}</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    const statusBadge=m.status==='done'
+      ?`<span class="badge badge-done">Finished</span>`
+      :m.bettingOpen
+      ?`<span class="badge badge-open" style="animation:pulse 2s infinite">🔴 Betting Open</span>`
+      :`<span class="badge badge-closed">Betting Closed</span>`;
+
+    const matchTitle=isRanked
+      ?`<div style="font-size:13px;font-family:'Cinzel',serif;color:var(--gold);margin-bottom:4px">${m.id} — Rankings</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">${contestants.map(n=>`<span style="background:var(--bg3);border-radius:var(--radius-sm);padding:3px 8px;font-size:12px">${n}</span>`).join('')}</div>`
+      :`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <span style="font-family:'Cinzel',serif;font-size:15px;color:${m.winner===m.p1?'var(--gold)':'var(--text)'}">${m.p1}${m.winner===m.p1?' ✦':''}</span>
+          <span style="font-size:11px;color:var(--text-dim)">VS</span>
+          <span style="font-family:'Cinzel',serif;font-size:15px;color:${m.winner===m.p2?'var(--gold)':'var(--text)'}">${m.p2}${m.winner===m.p2?' ✦':''}</span>
+        </div>`;
+
+    html+=`<div class="card" style="margin-bottom:12px;${m.bettingOpen?'border-color:rgba(74,156,110,.35)':''}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px">
+        <div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px">${m.id}${m.day?' · '+m.day:''}</div>
+          ${matchTitle}
+        </div>
+        ${statusBadge}
+      </div>
+      ${potHtml}
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${bets.length} bet${bets.length!==1?'s':''} · ${activeBets.length} pending</div>
+      ${betRows}
+    </div>`;
+  });
+
+  el.innerHTML=html;
+}
 // ── ADMIN: MATCHES ────────────────────────────
 function renderAMatches(){
   let html=`<div style="margin-bottom:14px"><button class="btn btn-gold btn-sm" onclick="openAddMatchModal()">+ Add Match</button></div>`;
@@ -1113,7 +1275,7 @@ async function declareRankedResult(id){
     const actual={1:r1,2:r2,3:r3};
     let correct=0;
     [1,2,3].forEach(pos=>{if(picks[String(pos)]===actual[pos])correct++;});
-    const mult=correct===3?6:0;  // All 3 exact placements required for 6× payout
+    const mult=correct===0?0:correct===1?2:correct===2?4:6;
     batch.update(doc(_db,'bets',b.id),{result:mult>0?'won':'lost',rankedResult:result,correctPositions:correct});
     if(mult>0){
       const p=getPlayer(b.playerName);
@@ -1199,7 +1361,7 @@ async function reopenMatch(id){
     if(b.result==='won'){
       // Reverse FULL payout: standard = amount*2, ranked = amount*mult stored on bet
       const paidOut = b.betType==='ranked'
-        ? b.amount*6  // ranked always paid 6× (all-or-nothing)
+        ? b.amount*(b.correctPositions===1?2:b.correctPositions===2?4:6)
         : b.amount*2;
       reversals[n].delta -= paidOut;  // take back exactly what was paid
       batch.update(doc(_db,'bets',b.id),{result:null,settledWinner:null,rankedResult:null});
@@ -1533,7 +1695,7 @@ function renderGovAidSection(){
   // Freeze snapshot at render time
   _govAidPayload = S.players
     .map(p=>{
-      const nw=p.netWorth||0;
+      const nw=getNetWorth(p.name);
       const aid=govAidAmount(nw);
       const docId=govAidDocId(p.name);
       return{name:p.name,id:p.id,nw,aid,docId,applied:appliedSet.has(docId)};
@@ -1565,7 +1727,6 @@ function renderGovAidSection(){
 
   return `
     <div class="sec" style="margin-top:28px">🏛️ Government Aid — Semis</div>
-    <div class="alert alert-info" style="margin-bottom:8px;font-size:12px">⚠️ Run <strong>Settings → Resync player economy from CSV</strong> before applying aid to ensure balances are current.</div>
     <div class="card">
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
         <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:10px;text-align:center">
@@ -1595,11 +1756,13 @@ function renderGovAidSection(){
         </tr></thead>
         <tbody>${tableRows}</tbody>
       </table></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-        ${!allApplied?`<button class="btn btn-gold" onclick="applyGovAid()" id="gov-aid-btn">${noneApplied?'🏛️ Apply Government Aid to all eligible players':'🏛️ Apply remaining ('+(rows.length-appliedCount)+' pending)'}</button>`:''}
-        ${appliedCount>0?`<button class="btn btn-sm btn-danger" onclick="undoGovAid()">↩ Undo gov aid (${appliedCount} player${appliedCount!==1?'s':''})</button>`:''}
-      </div>
-      ${!allApplied?'<div style="font-size:11px;color:var(--text-dim);margin-top:6px">Amounts locked at preview time. Already-applied players are skipped.</div>':''}
+      ${!allApplied?`
+        <button class="btn btn-gold" onclick="applyGovAid()" id="gov-aid-btn">
+          ${noneApplied?'🏛️ Apply Government Aid to all eligible players':'🏛️ Apply remaining ('+(rows.length-appliedCount)+' pending)'}
+        </button>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:6px">
+          Amounts locked at preview time. Idempotent — already-applied players are skipped automatically.
+        </div>`:''}
     </div>`;
 }
 
@@ -1628,36 +1791,13 @@ async function applyGovAid(){
       if(!p||!p.id) return;
       const newBal=Math.round((p.balance||0)+r.aid);
       const newNW=Math.round((p.netWorth||0)+r.aid);
+      const govNW=newBal-(p.debt||0);
       batch.update(doc(_db,'players',p.id),{
         balance:      newBal,
-        netWorth:     newNW,
+        netWorth:     govNW,
         govAidPhase:  GOV_AID_PHASE,  // idempotency marker
         govAidAmount: r.aid,           // audit field
         govAidDate:   new Date().toISOString(),
-      });
-    });
-    await batch.commit();
-  }
-  _govAidPayload=null;
-  renderABank();
-}
-
-// ── UNDO GOVERNMENT AID ──────────────────────
-async function undoGovAid(){
-  const recipients=S.players.filter(p=>p.govAidPhase===GOV_AID_PHASE&&(p.govAidAmount||0)>0);
-  if(!recipients.length){alert('No gov aid to undo for phase: '+GOV_AID_PHASE);return;}
-  if(!confirm('Undo government aid for '+recipients.length+' player(s)? This reverses their aid amounts.'))return;
-  const CHUNK=400;
-  for(let i=0;i<recipients.length;i+=CHUNK){
-    const batch=writeBatch(_db);
-    recipients.slice(i,i+CHUNK).forEach(p=>{
-      const aid=p.govAidAmount||0;
-      batch.update(doc(_db,'players',p.id),{
-        balance:      Math.round((p.balance||0)-aid),
-        netWorth:     Math.round((p.netWorth||0)-aid),
-        govAidPhase:  null,
-        govAidAmount: 0,
-        govAidDate:   null,
       });
     });
     await batch.commit();
@@ -2109,12 +2249,14 @@ function refreshCurrentView(){
     else if(_curATab==='a-players') renderAPlayers();
     else if(_curATab==='a-bank')    renderABank();
     else if(_curATab==='a-corrections') renderACorrections();
+    else if(_curATab==='a-livebets') renderLiveBets('a-livebets');
   } else {
     refreshStats();
     if(_curPTab==='p-matches')     renderPMatches();
     else if(_curPTab==='p-leaderboard') renderLeaderboard();
     else if(_curPTab==='p-mybets') renderMyBets();
     else if(_curPTab==='p-bank') renderPlayerBank();
+    else if(_curPTab==='p-livebets') renderLiveBets('p-livebets');
   }
 }
 
@@ -2162,7 +2304,8 @@ Object.assign(globalThis,{
   openEditBalance, submitEditBalance,
   toggleLoanOpen, addDebtCapRound, removeDebtCapRound,
   reopenMatch, takeLoan,
-  applyGovAid, undoGovAid,
+  applyGovAid,
+  renderLiveBets,
   renderACorrections, setCorrView, loadCorrBets, saveBetEdit, voidBet, hardDeleteBet,
   resetPin, exportData, clearAllBets, resyncPlayersFromCSV,
 });
