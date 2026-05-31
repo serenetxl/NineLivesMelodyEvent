@@ -303,6 +303,7 @@ let S = {
   players: [],
   matches: [],
   bets: [],
+  discordWebhook: '', // set in Admin → Settings
   loanOpen: false,
   debtCapHistory: [],
   pins: {},
@@ -889,6 +890,16 @@ async function submitRankedBet(matchId){
     });
   }
   await batch.commit();
+  // Discord announcement for ranked bet (show 🥇🥈🥉 picks)
+  const _rm=S.matches.find(x=>x.id===matchId);
+  if(_rm){
+    const rankPicks=pick.split('|').map(part=>{
+      const[pos,name]=part.split(':');
+      const medals=['','🥇','🥈','🥉'];
+      return (medals[parseInt(pos)]||pos+':')+' '+name;
+    }).join(' · ');
+    _postDiscord('🏆 **'+S.currentUser+'** bet **'+fmt(amount)+' CC** on Finals ranking: '+rankPicks+' ('+_rm.id+')');
+  }
   closeModal('bet-modal');
 }
 
@@ -1200,7 +1211,7 @@ function renderAMatches(){
   let html=`<div style="margin-bottom:14px"><button class="btn btn-gold btn-sm" onclick="openAddMatchModal()">+ Add Match</button></div>`;
   if(!S.matches.length){html+='<div class="alert alert-info">No matches yet. Add semifinals matchups above.</div>';}
   S.matches.forEach(m=>{
-    const bc=S.bets.filter(b=>b.matchId===m.id).length;
+    const bc=S.bets.filter(b=>b.matchId===m.id&&b.result!=='voided').length;
     const p1p=S.bets.filter(b=>b.matchId===m.id&&norm(b.pick)===norm(m.p1)&&b.result!=='voided').reduce((s,b)=>s+b.amount,0);
     const p2p=S.bets.filter(b=>b.matchId===m.id&&norm(b.pick)===norm(m.p2)&&b.result!=='voided').reduce((s,b)=>s+b.amount,0);
     html+=`<div class="match-card">
@@ -1761,13 +1772,13 @@ function renderGovAidSection(){
         </tr></thead>
         <tbody>${tableRows}</tbody>
       </table></div>
-      ${!allApplied?`
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
         <button class="btn btn-gold" onclick="applyGovAid()" id="gov-aid-btn">
-          ${noneApplied?'🏛️ Apply Government Aid to all eligible players':'🏛️ Apply remaining ('+(rows.length-appliedCount)+' pending)'}
+          ${noneApplied?'🏛️ Apply Government Aid to all eligible players':allApplied?'🏛️ Re-apply Government Aid (idempotent)':'🏛️ Apply remaining ('+(rows.length-appliedCount)+' pending)'}
         </button>
-        <div style="font-size:11px;color:var(--text-dim);margin-top:6px">
-          Amounts locked at preview time. Idempotent — already-applied players are skipped automatically.
-        </div>`:''}
+        ${appliedCount>0?`<button class="btn btn-sm btn-danger" onclick="undoGovAid()">↩ Undo gov aid (${appliedCount} player${appliedCount!==1?'s':''})</button>`:''}
+      </div>
+      <div style="font-size:11px;color:var(--text-dim)">Amounts locked at preview time. Already-applied players are skipped on re-run.</div>
     </div>`;
 }
 
@@ -1803,6 +1814,29 @@ async function applyGovAid(){
         govAidPhase:  GOV_AID_PHASE,  // idempotency marker
         govAidAmount: r.aid,           // audit field
         govAidDate:   new Date().toISOString(),
+      });
+    });
+    await batch.commit();
+  }
+  _govAidPayload=null;
+  renderABank();
+}
+
+async function undoGovAid(){
+  const recipients=S.players.filter(p=>p.govAidPhase===GOV_AID_PHASE&&(p.govAidAmount||0)>0);
+  if(!recipients.length){alert('No gov aid to undo for phase: '+GOV_AID_PHASE);return;}
+  if(!confirm('Undo government aid for '+recipients.length+' player(s)? This reverses their aid amounts.'))return;
+  const CHUNK=400;
+  for(let i=0;i<recipients.length;i+=CHUNK){
+    const batch=writeBatch(_db);
+    recipients.slice(i,i+CHUNK).forEach(p=>{
+      const aid=p.govAidAmount||0;
+      batch.update(doc(_db,'players',p.id),{
+        balance:      Math.round((p.balance||0)-aid),
+        netWorth:     Math.round((p.netWorth||0)-aid),
+        govAidPhase:  null,
+        govAidAmount: 0,
+        govAidDate:   null,
       });
     });
     await batch.commit();
@@ -1954,6 +1988,21 @@ async function hardDeleteBet(betId){
 // ── ADMIN: SETTINGS ───────────────────────────
 function renderASettings(){
   document.getElementById('a-settings').innerHTML=`
+    <div class="card">
+      <div style="font-weight:500;margin-bottom:6px">📣 Discord Webhook</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">
+        Paste your Discord channel webhook URL here. When players place bets, an announcement will be posted automatically.
+        <br><a href="https://support.discord.com/hc/en-us/articles/228383668" target="_blank" style="color:var(--gold)">How to get a webhook URL ↗</a>
+      </div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="discord-webhook-input" placeholder="https://discord.com/api/webhooks/..." value="${S.discordWebhook||''}" style="flex:1;font-size:12px" />
+        <button class="btn btn-sm btn-gold" onclick="saveDiscordWebhook()">Save</button>
+        ${S.discordWebhook?`<button class="btn btn-sm" onclick="testDiscordWebhook()">Test</button>`:''}
+      </div>
+      <div id="discord-webhook-status" style="font-size:11px;margin-top:6px;color:var(--text-dim)">
+        ${S.discordWebhook?'✅ Webhook configured':'Not configured — bets will not be announced'}
+      </div>
+    </div>
     <div class="card" style="border-color:rgba(201,168,76,.4)">
       <div style="font-weight:500;margin-bottom:4px">🔄 Player Economy Resync</div>
       <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px">
@@ -2073,6 +2122,7 @@ async function resyncPlayersFromCSV(){
     players.slice(i,i+CHUNK).forEach(p=>{
       const row=csvMap[norm(p.name)];
       if(!row){notFound.push(p.name);skipped++;return;}
+      // Preserve govAid fields — resync should not undo applied aid
       batch.update(doc(_db,'players',p.id),{
         balance:       row.balance,
         loanPrincipal: row.loanPrincipal,
@@ -2087,6 +2137,20 @@ async function resyncPlayersFromCSV(){
   const msg=`✅ Resynced ${matched} players.${skipped?' ⚠️ '+skipped+' not in CSV: '+notFound.join(', '):''}`;
   if(statusEl){statusEl.style.color='var(--green)';statusEl.textContent=msg;}
   alert(msg);
+}
+
+async function saveDiscordWebhook(){
+  const url=(document.getElementById('discord-webhook-input')?.value||'').trim();
+  await _fsCfg({discordWebhook:url});
+  S.discordWebhook=url;
+  const el=document.getElementById('discord-webhook-status');
+  if(el) el.textContent=url?'✅ Webhook saved':'Webhook cleared';
+  renderASettings(); // re-render to show/hide test button
+}
+async function testDiscordWebhook(){
+  if(!S.discordWebhook){alert('No webhook URL saved.');return;}
+  await _postDiscord('🎰 Nine Lives — Melody Event betting is live! Bet announcements will appear here.');
+  alert('Test message sent! Check your Discord channel.');
 }
 
 async function resetPin(){
@@ -2200,6 +2264,7 @@ async function _silentResync(){
     const batch=writeBatch(_db);
     players.slice(i,i+CHUNK).forEach(p=>{
       const row=csvMap[norm(p.name)]; if(!row) return;
+      // Preserve govAid fields — resync should not undo applied aid
       batch.update(doc(_db,'players',p.id),{
         balance:       row.balance,
         loanPrincipal: row.loanPrincipal,
@@ -2238,6 +2303,7 @@ function subscribeAll(){
       S.loanOpen=d.loanOpen||false;
       S.pins=d.pins||{};
       S.debtCapHistory=d.debtCapHistory||[];
+      S.discordWebhook=d.discordWebhook||'';
       S.maxDebt=S.debtCapHistory.length>0
         ? S.debtCapHistory.reduce((s,e)=>s+(e.amount||0),0)
         : (d.maxDebt||0);
@@ -2263,6 +2329,18 @@ function refreshCurrentView(){
     else if(_curPTab==='p-bank') renderPlayerBank();
     else if(_curPTab==='p-livebets') renderLiveBets('p-livebets');
   }
+}
+
+// ── DISCORD WEBHOOK ─────────────────────────
+async function _postDiscord(msg){
+  if(!S.discordWebhook) return; // not configured
+  try{
+    await fetch(S.discordWebhook,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({content:msg}),
+    });
+  } catch(e){ console.warn('Discord webhook failed:',e); }
 }
 
 // ── BET PLACEMENT ──
@@ -2293,10 +2371,13 @@ async function submitBetWithDeduct(matchId){
     batch.update(doc(_db,'players',p.id),{balance:newBal,netWorth:newNW});
   }
   await batch.commit();
+  // Discord announcement for standard bet
+  if(m){
+    const emoji=norm(pick)===norm(m.p1)?'🟡':'🔵';
+    _postDiscord(emoji+' **'+S.currentUser+'** bet **'+fmt(amount)+' CC** on **'+pick+'** ('+m.id+': '+m.p1+' vs '+m.p2+')');
+  }
   closeModal('bet-modal');
 }
-
-// ── EXPOSE TO GLOBAL SCOPE ────────────────────
 Object.assign(globalThis,{
   startLogin, showLogin, showAdminLogin, showRegister, loginAdmin, logout,
   playerTab, adminTab, closeModal,
@@ -2309,9 +2390,10 @@ Object.assign(globalThis,{
   openEditBalance, submitEditBalance,
   toggleLoanOpen, addDebtCapRound, removeDebtCapRound,
   reopenMatch, takeLoan,
-  applyGovAid,
+  applyGovAid, undoGovAid,
   renderLiveBets,
   renderACorrections, setCorrView, loadCorrBets, saveBetEdit, voidBet, hardDeleteBet,
+  saveDiscordWebhook, testDiscordWebhook,
   resetPin, exportData, clearAllBets, resyncPlayersFromCSV,
 });
 
