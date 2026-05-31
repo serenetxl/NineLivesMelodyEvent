@@ -736,6 +736,9 @@ function renderPMatches(){
 }
 
 // ── PLAYER: LEADERBOARD ──────────────────────
+let _lbSort='desc'; // 'desc'=NW high→low | 'asc'=NW low→high | 'alpha'=A-Z
+function setLbSort(s){_lbSort=s;renderLeaderboard();}
+
 function renderLeaderboard(){
   const ps = S.players.map(p=>({
     ...p,
@@ -785,33 +788,46 @@ function renderLeaderboard(){
     </div>
   </div>`;
 
-  html+=`<div class="sec">Full leaderboard</div>
-  <div class="tbl-wrap lb-full-table"><table>
-    <thead><tr>
-      <th style="width:36px"></th><th>Player</th><th class="hide-mobile">Status</th>
-      <th style="text-align:right">Balance</th>
-      <th style="text-align:right" class="hide-mobile">Loan</th>
-      <th style="text-align:right" class="hide-mobile">Interest</th>
-      <th style="text-align:right">Debt</th>
-      <th style="text-align:right">Net Worth</th>
-    </tr></thead><tbody>`;
-  ps.forEach((p,i)=>{
-    const rc=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-cell';
+  // Apply sort to full list
+  const full=[...ps];
+  if(_lbSort==='asc')   full.sort((a,b)=>a.worth-b.worth);
+  else if(_lbSort==='alpha') full.sort((a,b)=>a.name.localeCompare(b.name));
+  // 'desc' is already sorted by default above
+
+  // Sort buttons
+  const btnStyle=(key)=>_lbSort===key
+    ?'padding:3px 9px;font-size:11px;background:var(--gold);color:#0D0F14;border:none;border-radius:4px;cursor:pointer;font-family:inherit;font-weight:600'
+    :'padding:3px 9px;font-size:11px;background:transparent;color:var(--text-dim);border:0.5px solid var(--border);border-radius:4px;cursor:pointer;font-family:inherit';
+
+  html+=`<div style="display:flex;align-items:center;justify-content:space-between;margin:20px 0 8px">
+    <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em">Full leaderboard · ${full.length} players</span>
+    <div style="display:flex;gap:4px">
+      <button onclick="setLbSort('desc')" style="${btnStyle('desc')}">↓ Rich</button>
+      <button onclick="setLbSort('asc')"  style="${btnStyle('asc')}">↑ Poor</button>
+      <button onclick="setLbSort('alpha')" style="${btnStyle('alpha')}">A–Z</button>
+    </div>
+  </div>
+  <div style="border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden">`;
+
+  full.forEach((p,i)=>{
+    const rank = _lbSort!=='alpha' ? i+1 : null;
+    const rankColor = rank===1?'#F0D080':rank===2?'#C8D0D8':rank===3?'#C08040':'var(--text-dim)';
+    const rankLabel = rank
+      ?`<span style="font-family:'Cinzel',serif;font-size:12px;color:${rankColor};width:26px;flex-shrink:0;text-align:center">#${rank}</span>`
+      :`<span style="width:26px;flex-shrink:0"></span>`;
     const isMe=norm(p.name)===norm(S.currentUser);
-    html+=`<tr>
-      <td><span class="${rc}">#${i+1}</span></td>
-      <td><div class="row" style="gap:8px"><div class="avatar" style="${avStyle(p.name)}">${initials(p.name)}</div>
-        <span style="font-weight:${isMe?'500':'400'}">${p.name}${isMe?' <span style="font-size:11px;color:var(--text-dim)">(you)</span>':''}</span>
-      </div></td>
-      <td class="hide-mobile"><span class="badge ${p.status==='active'?'badge-open':p.status==='eliminated'?'badge-closed':'badge-pending'}">${p.status}</span></td>
-      <td style="text-align:right;color:${p.spendable<0?'var(--red)':'inherit'}">${fmt(p.spendable)}</td>
-      <td style="text-align:right;color:${(p.loanPrincipal||0)>0?'var(--gold)':'var(--text-dim)'}" class="hide-mobile">${(p.loanPrincipal||0)>0?fmt(p.loanPrincipal):'—'}</td>
-      <td style="text-align:right;color:${(p.interestOwed||0)>0?'var(--red)':'var(--text-dim)'}" class="hide-mobile">${(p.interestOwed||0)>0?fmt(p.interestOwed):'—'}</td>
-      <td style="text-align:right;color:${(p.debt||0)>0?'var(--red)':'var(--text-dim)'}">${(p.debt||0)>0?'−'+fmt(p.debt):'—'}</td>
-      <td style="text-align:right;font-family:'Cinzel',serif;color:${p.worth<0?'var(--red)':'var(--green)'}">${fmt(p.worth)}</td>
-    </tr>`;
+    const debtStr=(p.debt||0)>0?`<span style="color:var(--red)">−${fmt(p.debt)}</span>`:'—';
+    html+=`<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:0.5px solid rgba(201,168,76,.07)">
+      ${rankLabel}
+      <div class="avatar" style="${avStyle(p.name)};width:28px;height:28px;font-size:10px;flex-shrink:0">${initials(p.name)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:${isMe?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}${isMe?' <span style="font-size:10px;color:var(--text-dim)">(you)</span>':''}</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:1px">Bal: <span style="color:var(--text)">${fmt(p.spendable)}</span>${(p.debt||0)>0?` · Debt: <span style="color:var(--red)">−${fmt(p.debt)}</span>`:''}</div>
+      </div>
+      <span style="font-family:'Cinzel',serif;font-size:14px;color:${p.worth<0?'var(--red)':'var(--green)'};flex-shrink:0">${fmt(p.worth)}</span>
+    </div>`;
   });
-  html+=`</tbody></table></div>`;
+  html+=`</div>`;
   document.getElementById('p-leaderboard').innerHTML=html;
 }
 
@@ -1548,7 +1564,12 @@ function renderAPlayers(){
       <td style="text-align:right;color:${(p.interestOwed||0)>0?'var(--red)':'var(--text-dim)'}">${(p.interestOwed||0)>0?fmt(p.interestOwed):'—'}</td>
       <td style="text-align:right;color:${(p.debt||0)>0?'var(--red)':'var(--text-dim)'}">${(p.debt||0)>0?'−'+fmt(p.debt):'—'}</td>
       <td style="text-align:right;color:${worth<0?'var(--red)':'var(--green)'}">${fmt(worth)}</td>
-      <td><button class="btn btn-sm" onclick="openEditBalance('${p.name}')">± Edit</button></td>
+      <td>
+        <div style="display:flex;gap:4px;justify-content:flex-end">
+          <button class="btn btn-sm" onclick="openEditBalance('${p.name}')">± Edit</button>
+          <button class="btn btn-sm btn-danger" style="padding:5px 8px" onclick="deletePlayer('${p.id}','${p.name.replace(/'/g,String.fromCharCode(39))}')">🗑</button>
+        </div>
+      </td>
     </tr>`;
   });
   html+=`</tbody></table></div>`;
@@ -1556,6 +1577,17 @@ function renderAPlayers(){
 }
 
 async function changeStatus(id,status){await _fsUpd('players',id,{status});}
+
+async function deletePlayer(id,name){
+  const pending=S.bets.filter(b=>norm(b.playerName)===norm(name)&&b.result===null);
+  if(pending.length){
+    alert('Cannot delete '+name+' — they have '+pending.length+' active bet(s). Void or settle them first.');
+    return;
+  }
+  if(!confirm('Permanently delete '+name+'?\nThis cannot be undone. Their settled bet history is preserved.'))return;
+  await _fsDel('players',id);
+}
+
 async function submitAddPlayer(){
   const name=document.getElementById('new-player-name').value.trim();
   const status=document.getElementById('new-player-status').value;
@@ -2424,7 +2456,7 @@ Object.assign(globalThis,{
   submitBet: submitBetWithDeduct,
   toggleBetting, declareWinner, reopenMatch, declareWalkover, deleteMatch,
   openAddMatchModal, editMatch, submitAddMatch, submitEditMatch,
-  changeStatus, submitAddPlayer,
+  changeStatus, deletePlayer, setLbSort, submitAddPlayer,
   openEditBalance, submitEditBalance,
   toggleLoanOpen, addDebtCapRound, removeDebtCapRound,
   reopenMatch, takeLoan,
