@@ -94,7 +94,15 @@ tr:hover td{background:rgba(201,168,76,.03)}
 .audience-tag{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:0.5px solid var(--border);border-radius:20px;padding:4px 10px;font-size:12px;margin:3px}
 .sync-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--text-dim);margin-left:6px;vertical-align:middle}
 .sync-dot.live{background:var(--green)}.sync-dot.saving{background:var(--gold)}
-@media(max-width:520px){.stats-grid{grid-template-columns:1fr 1fr}.main{padding:14px 16px}}
+@media(max-width:520px){
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .main{padding:14px 16px}
+  .lb-top-grid{grid-template-columns:1fr !important}
+  .lb-full-table th.hide-mobile,.lb-full-table td.hide-mobile{display:none}
+  .lb-full-table{font-size:12px}
+  .tab-bar{gap:0}
+  .tab{padding:8px 10px;font-size:12px}
+}
 @media(min-width:768px){
   .match-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
   .match-grid .match-card{margin-bottom:12px}
@@ -304,6 +312,7 @@ let S = {
   matches: [],
   bets: [],
   discordWebhook: '', // set in Admin → Settings
+  discordThreadId: '',
   loanOpen: false,
   debtCapHistory: [],
   pins: {},
@@ -698,7 +707,7 @@ function renderPMatches(){
             }).join('')}
           </div>
           ${m.winner&&m.winner!=='Walkover'?`<div class="alert alert-success" style="margin-top:8px;padding:6px 10px;font-size:12px">Result: ${m.winner.split('|').map(r=>{const[p,n]=r.split(':');const medals=['','🥇','🥈','🥉'];return medals[parseInt(p)]+' '+n;}).join(' · ')}</div>`:''}
-          <div style="font-size:11px;color:var(--text-dim);margin-top:6px">Total staked: ${fmt(totalPot)} CC · Payout: 1 correct 2× · 2 correct 4× · 3 correct 6×</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:6px">Total staked: ${fmt(totalPot)} CC · Payout: all 3 exact order → 10×</div>
         </div>`
       : `<div class="match-vs">
           <div class="match-player">
@@ -754,7 +763,7 @@ function renderLeaderboard(){
     </div>`;
   }
 
-  let html=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+  let html=`<div class="lb-top-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
     <div style="background:var(--bg2);border:0.5px solid rgba(201,168,76,.35);border-radius:var(--radius);overflow:hidden">
       <div style="padding:10px 16px;background:rgba(201,168,76,.07);border-bottom:0.5px solid rgba(201,168,76,.2);display:flex;align-items:center;gap:8px">
         <span style="font-size:16px">🏆</span>
@@ -777,13 +786,13 @@ function renderLeaderboard(){
   </div>`;
 
   html+=`<div class="sec">Full leaderboard</div>
-  <div class="tbl-wrap"><table>
+  <div class="tbl-wrap lb-full-table"><table>
     <thead><tr>
-      <th style="width:36px"></th><th>Player</th><th>Status</th>
+      <th style="width:36px"></th><th>Player</th><th class="hide-mobile">Status</th>
       <th style="text-align:right">Balance</th>
-      <th style="text-align:right">Loan</th>
-      <th style="text-align:right">Interest</th>
-      <th style="text-align:right">Total Debt</th>
+      <th style="text-align:right" class="hide-mobile">Loan</th>
+      <th style="text-align:right" class="hide-mobile">Interest</th>
+      <th style="text-align:right">Debt</th>
       <th style="text-align:right">Net Worth</th>
     </tr></thead><tbody>`;
   ps.forEach((p,i)=>{
@@ -794,10 +803,10 @@ function renderLeaderboard(){
       <td><div class="row" style="gap:8px"><div class="avatar" style="${avStyle(p.name)}">${initials(p.name)}</div>
         <span style="font-weight:${isMe?'500':'400'}">${p.name}${isMe?' <span style="font-size:11px;color:var(--text-dim)">(you)</span>':''}</span>
       </div></td>
-      <td><span class="badge ${p.status==='active'?'badge-open':p.status==='eliminated'?'badge-closed':'badge-pending'}">${p.status}</span></td>
+      <td class="hide-mobile"><span class="badge ${p.status==='active'?'badge-open':p.status==='eliminated'?'badge-closed':'badge-pending'}">${p.status}</span></td>
       <td style="text-align:right;color:${p.spendable<0?'var(--red)':'inherit'}">${fmt(p.spendable)}</td>
-      <td style="text-align:right;color:${(p.loanPrincipal||0)>0?'var(--gold)':'var(--text-dim)'}">${(p.loanPrincipal||0)>0?fmt(p.loanPrincipal):'—'}</td>
-      <td style="text-align:right;color:${(p.interestOwed||0)>0?'var(--red)':'var(--text-dim)'}">${(p.interestOwed||0)>0?fmt(p.interestOwed):'—'}</td>
+      <td style="text-align:right;color:${(p.loanPrincipal||0)>0?'var(--gold)':'var(--text-dim)'}" class="hide-mobile">${(p.loanPrincipal||0)>0?fmt(p.loanPrincipal):'—'}</td>
+      <td style="text-align:right;color:${(p.interestOwed||0)>0?'var(--red)':'var(--text-dim)'}" class="hide-mobile">${(p.interestOwed||0)>0?fmt(p.interestOwed):'—'}</td>
       <td style="text-align:right;color:${(p.debt||0)>0?'var(--red)':'var(--text-dim)'}">${(p.debt||0)>0?'−'+fmt(p.debt):'—'}</td>
       <td style="text-align:right;font-family:'Cinzel',serif;color:${p.worth<0?'var(--red)':'var(--green)'}">${fmt(p.worth)}</td>
     </tr>`;
@@ -817,7 +826,7 @@ function renderMyBets(){
     <thead><tr><th>Match</th><th>Pick</th><th style="text-align:right">Bet</th><th style="text-align:right">Result</th></tr></thead><tbody>`;
   mb.forEach(b=>{
     const m=S.matches.find(x=>x.id===b.matchId);
-    const res=b.result==='won'?`<span class="badge badge-open">+${fmt(b.amount*BET_MULT)}</span>`:
+    const res=b.result==='won'?`<span class="badge badge-open">+${fmt(b.betType==='ranked'?b.amount*10:b.amount*BET_MULT)}</span>`:
       b.result==='lost'?`<span class="badge badge-closed">-${fmt(b.amount)}</span>`:
       b.result==='walkover'?`<span class="badge badge-walkover">Walkover</span>`:
       b.result==='voided'?`<span class="badge badge-walkover">Voided</span>`:
@@ -857,7 +866,7 @@ function openRankedBetModal(matchId){
     <div class="fg"><label class="lbl">Bet amount — balance: ${fmt(bal)} CC</label>
       <input type="number" id="bet-amount" min="1" max="${bal}" placeholder="Amount..." /></div>
     <div class="alert alert-gold" style="margin-bottom:14px;font-size:12px">
-      1 correct position → 2× · 2 correct → 4× · 3 correct (exact order) → 6×<br>
+      Get ALL 3 placements correct in exact order → 10× payout. Wrong order = no payout.<br>
       Only exact position matches count.
     </div>
     <div id="bet-error" class="alert alert-danger hidden"></div>
@@ -1157,7 +1166,7 @@ function renderLiveBets(containerId){
         const resultTag=b.result===null
           ?`<span style="font-size:10px;background:${betBg};color:${betColor};border:0.5px solid ${betBorder};border-radius:3px;padding:1px 6px">PENDING</span>`
           :b.result==='won'
-          ?`<span style="font-size:10px;background:var(--green-bg);color:var(--green);border:0.5px solid rgba(74,156,110,.3);border-radius:3px;padding:1px 6px">WON +${fmt(b.betType==='ranked'?b.amount*6:b.amount*BET_MULT)}</span>`
+          ?`<span style="font-size:10px;background:var(--green-bg);color:var(--green);border:0.5px solid rgba(74,156,110,.3);border-radius:3px;padding:1px 6px">WON +${fmt(b.betType==='ranked'?b.amount*10:b.amount*BET_MULT)}</span>`
           :b.result==='lost'
           ?`<span style="font-size:10px;background:var(--red-bg);color:var(--red);border:0.5px solid rgba(192,64,64,.3);border-radius:3px;padding:1px 6px">LOST</span>`
           :`<span style="font-size:10px;background:var(--bg3);color:var(--text-dim);border:0.5px solid var(--border);border-radius:3px;padding:1px 6px">${b.result?.toUpperCase()||'—'}</span>`;
@@ -1291,7 +1300,7 @@ async function declareRankedResult(id){
     const actual={1:r1,2:r2,3:r3};
     let correct=0;
     [1,2,3].forEach(pos=>{if(picks[String(pos)]===actual[pos])correct++;});
-    const mult=correct===0?0:correct===1?2:correct===2?4:6;
+    const mult=correct===3?10:0;  // All 3 exact placements in correct order → 10× payout
     batch.update(doc(_db,'bets',b.id),{result:mult>0?'won':'lost',rankedResult:result,correctPositions:correct});
     if(mult>0){
       const p=getPlayer(b.playerName);
@@ -1377,7 +1386,7 @@ async function reopenMatch(id){
     if(b.result==='won'){
       // Reverse FULL payout: standard = amount*2, ranked = amount*mult stored on bet
       const paidOut = b.betType==='ranked'
-        ? b.amount*(b.correctPositions===1?2:b.correctPositions===2?4:6)
+        ? b.amount*10  // ranked pays 10× all-or-nothing
         : b.amount*2;
       reversals[n].delta -= paidOut;  // take back exactly what was paid
       batch.update(doc(_db,'bets',b.id),{result:null,settledWinner:null,rankedResult:null});
@@ -1558,16 +1567,22 @@ async function submitAddPlayer(){
 // Direct balance editor — no ledger, no adjustments collection, just write the fields
 function openEditBalance(name){
   const p=getPlayer(name);if(!p)return;
+  const curDebt=(p.loanPrincipal||0)+Math.round((p.loanPrincipal||0)*0.2);
   document.getElementById('edit-balance-content').innerHTML=`
     <div style="margin-bottom:12px;color:var(--text-dim)">Editing <strong style="color:var(--text)">${name}</strong></div>
     <div class="fg"><label class="lbl">Balance (spendable wallet)</label>
       <input type="number" id="eb-balance" value="${p.balance||0}" /></div>
     <div class="fg"><label class="lbl">Loan Principal (capital borrowed)</label>
       <input type="number" id="eb-principal" value="${p.loanPrincipal||0}" min="0" /></div>
+    <div style="background:rgba(201,168,76,.06);border:0.5px solid rgba(201,168,76,.25);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px">
+      <div style="font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">🎡 Audience Bonus (Spin the Wheel)</div>
+      <input type="number" id="eb-bonus" min="0" placeholder="0 — enter bonus CC to add" style="margin-bottom:6px" />
+      <div style="font-size:11px;color:var(--text-dim)">Bonus adds to <strong>balance</strong> and <strong>net worth</strong> automatically. Leave 0 if no bonus this edit.</div>
+    </div>
     <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">
       Interest (20%): <strong id="eb-int-preview">${fmt(Math.round((p.loanPrincipal||0)*0.2))} CC</strong> ·
-      Total debt: <strong id="eb-debt-preview">${fmt((p.loanPrincipal||0)+Math.round((p.loanPrincipal||0)*0.2))} CC</strong> ·
-      Net worth: <strong id="eb-nw-preview">${fmt((p.balance||0)-((p.loanPrincipal||0)+Math.round((p.loanPrincipal||0)*0.2)))} CC</strong>
+      Total debt: <strong id="eb-debt-preview">${fmt(curDebt)} CC</strong> ·
+      Net worth: <strong id="eb-nw-preview">${fmt((p.balance||0)-curDebt)} CC</strong>
     </div>
     <div id="eb-preview" style="font-size:13px;color:var(--gold);margin-bottom:12px"></div>
     <div class="btn-row">
@@ -1575,18 +1590,22 @@ function openEditBalance(name){
       <button class="btn btn-gold" style="flex:1" onclick="submitEditBalance('${name}')">Save</button>
     </div>`;
   // Live preview
-  ['eb-balance','eb-principal'].forEach(id=>{
+  ['eb-balance','eb-principal','eb-bonus'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
     el.addEventListener('input',()=>{
       const b=parseInt(document.getElementById('eb-balance').value)||0;
       const pr=parseInt(document.getElementById('eb-principal').value)||0;
+      const bonus=parseInt(document.getElementById('eb-bonus').value)||0;
       const intr=Math.round(pr*0.2);
       const d=pr+intr;
-      const nw=b-d;
+      const nw=(b+bonus)-d;
       const pi=document.getElementById('eb-int-preview');if(pi)pi.textContent=fmt(intr)+' CC';
       const pd=document.getElementById('eb-debt-preview');if(pd)pd.textContent=fmt(d)+' CC';
       const pnw=document.getElementById('eb-nw-preview');if(pnw)pnw.textContent=fmt(nw)+' CC';
-      const prev2=document.getElementById('eb-preview');if(prev2)prev2.textContent=`Balance: ${fmt(b)} · Principal: ${fmt(pr)} · Interest: ${fmt(intr)} · Debt: ${fmt(d)} · NW: ${fmt(nw)}`;
+      const prev2=document.getElementById('eb-preview');
+      if(prev2)prev2.textContent=bonus>0
+        ?`Balance: ${fmt(b)} + bonus ${fmt(bonus)} = ${fmt(b+bonus)} · Debt: ${fmt(d)} · NW: ${fmt(nw)}`
+        :`Balance: ${fmt(b)} · Debt: ${fmt(d)} · NW: ${fmt(nw)}`;
     });
   });
   document.getElementById('edit-balance-modal').classList.remove('hidden');
@@ -1594,12 +1613,15 @@ function openEditBalance(name){
 
 async function submitEditBalance(name){
   const p=getPlayer(name);if(!p)return;
-  const balance=parseInt(document.getElementById('eb-balance').value)||0;
+  const baseBalance=parseInt(document.getElementById('eb-balance').value)||0;
+  const bonus=Math.max(0,parseInt(document.getElementById('eb-bonus')?.value)||0);
+  const balance=baseBalance+bonus;  // bonus added to balance
   const loanPrincipal=Math.max(0,parseInt(document.getElementById('eb-principal')?.value)||0);
   const interestOwed=Math.round(loanPrincipal*0.2);
   const debt=loanPrincipal+interestOwed;
-  const netWorth=balance-debt;
+  const netWorth=balance-debt;  // netWorth also increases by bonus amount
   await _fsUpd('players',p.id,{balance,loanPrincipal,interestOwed,debt,netWorth});
+  if(bonus>0) console.log(`Audience bonus of ${bonus} CC applied to ${name}`);
   closeModal('edit-balance-modal');
 }
 
@@ -1991,16 +2013,24 @@ function renderASettings(){
     <div class="card">
       <div style="font-weight:500;margin-bottom:6px">📣 Discord Webhook</div>
       <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">
-        Paste your Discord channel webhook URL here. When players place bets, an announcement will be posted automatically.
+        Paste your Discord channel webhook URL here. When players place bets, an announcement will be posted automatically.<br>
+        To post to a <strong style="color:var(--text)">thread</strong> inside a channel, also paste the Thread ID below.
         <br><a href="https://support.discord.com/hc/en-us/articles/228383668" target="_blank" style="color:var(--gold)">How to get a webhook URL ↗</a>
       </div>
+      <div class="fg" style="margin-bottom:6px">
+        <label class="lbl">Webhook URL</label>
+        <input type="text" id="discord-webhook-input" placeholder="https://discord.com/api/webhooks/..." value="${S.discordWebhook||''}" style="font-size:12px" />
+      </div>
+      <div class="fg" style="margin-bottom:8px">
+        <label class="lbl">Thread ID <span style="color:var(--text-dim);font-weight:400">(optional — right-click thread → Copy Thread ID)</span></label>
+        <input type="text" id="discord-thread-input" placeholder="e.g. 1234567890123456789" value="${S.discordThreadId||''}" style="font-size:12px" />
+      </div>
       <div style="display:flex;gap:8px">
-        <input type="text" id="discord-webhook-input" placeholder="https://discord.com/api/webhooks/..." value="${S.discordWebhook||''}" style="flex:1;font-size:12px" />
         <button class="btn btn-sm btn-gold" onclick="saveDiscordWebhook()">Save</button>
         ${S.discordWebhook?`<button class="btn btn-sm" onclick="testDiscordWebhook()">Test</button>`:''}
       </div>
       <div id="discord-webhook-status" style="font-size:11px;margin-top:6px;color:var(--text-dim)">
-        ${S.discordWebhook?'✅ Webhook configured':'Not configured — bets will not be announced'}
+        ${S.discordWebhook?'✅ Webhook configured'+(S.discordThreadId?' · thread '+S.discordThreadId:''):'Not configured — bets will not be announced'}
       </div>
     </div>
     <div class="card" style="border-color:rgba(201,168,76,.4)">
@@ -2141,11 +2171,13 @@ async function resyncPlayersFromCSV(){
 
 async function saveDiscordWebhook(){
   const url=(document.getElementById('discord-webhook-input')?.value||'').trim();
-  await _fsCfg({discordWebhook:url});
+  const threadId=(document.getElementById('discord-thread-input')?.value||'').trim();
+  await _fsCfg({discordWebhook:url,discordThreadId:threadId});
   S.discordWebhook=url;
+  S.discordThreadId=threadId;
   const el=document.getElementById('discord-webhook-status');
-  if(el) el.textContent=url?'✅ Webhook saved':'Webhook cleared';
-  renderASettings(); // re-render to show/hide test button
+  if(el) el.textContent=url?'✅ Webhook saved'+(threadId?' · thread '+threadId:''):'Webhook cleared';
+  renderASettings();
 }
 async function testDiscordWebhook(){
   if(!S.discordWebhook){alert('No webhook URL saved.');return;}
@@ -2304,6 +2336,7 @@ function subscribeAll(){
       S.pins=d.pins||{};
       S.debtCapHistory=d.debtCapHistory||[];
       S.discordWebhook=d.discordWebhook||'';
+      S.discordThreadId=d.discordThreadId||'';
       S.maxDebt=S.debtCapHistory.length>0
         ? S.debtCapHistory.reduce((s,e)=>s+(e.amount||0),0)
         : (d.maxDebt||0);
@@ -2333,9 +2366,13 @@ function refreshCurrentView(){
 
 // ── DISCORD WEBHOOK ─────────────────────────
 async function _postDiscord(msg){
-  if(!S.discordWebhook) return; // not configured
+  if(!S.discordWebhook) return;
   try{
-    await fetch(S.discordWebhook,{
+    // If threadId set, append ?thread_id= to post into a specific thread
+    const url=S.discordThreadId
+      ?S.discordWebhook+'?thread_id='+S.discordThreadId
+      :S.discordWebhook;
+    await fetch(url,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({content:msg}),
