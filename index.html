@@ -1051,6 +1051,7 @@ async function takeLoan(){
     debt:          newDebt,
     netWorth:      newNetWorth,
   });
+  _postDiscord('🏦 **'+n+'** took a loan of **'+fmt(amount)+' CC** from Cat Bank (total principal: '+fmt(newLoanPrincipal)+' CC · total debt incl. interest: '+fmt(newDebt)+' CC)');
   renderPlayerBank();
   refreshStats();
 }
