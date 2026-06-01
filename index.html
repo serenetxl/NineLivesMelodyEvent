@@ -2057,6 +2057,12 @@ async function hardDeleteBet(betId){
 // ── ADMIN: SETTINGS ───────────────────────────
 function renderASettings(){
   document.getElementById('a-settings').innerHTML=`
+    <div class="card" style="border-color:rgba(192,64,64,.5)">
+      <div style="font-weight:500;margin-bottom:4px;color:var(--red)">🚨 Crash Recovery — Semis Settlement</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px">Sets all 24 affected players to their definitive correct balances (calculated from CSV baseline + every M19/M20/M21 bet). Safe to run multiple times.</div>
+      <div id="crash-status" style="font-size:12px;margin-bottom:8px"></div>
+      <button class="btn btn-danger btn-sm" onclick="applyCrashRecovery()">⚡ Apply crash recovery</button>
+    </div>
     <div class="card">
       <div style="font-weight:500;margin-bottom:6px">📣 Discord Webhook</div>
       <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">
@@ -2230,6 +2236,53 @@ async function testDiscordWebhook(){
   if(!S.discordWebhook){alert('No webhook URL saved.');return;}
   await _postDiscord('🎰 Nine Lives — Melody Event betting is live! Bet announcements will appear here.');
   alert('Test message sent! Check your Discord channel.');
+}
+
+// ── CRASH RECOVERY ───────────────────────────
+// Ground truth: CSV baseline + every M19/M20/M21 bet outcome.
+// Replaces current Firestore values with correct ones. Idempotent.
+const CRASH_CORRECT=[
+  {name:'AniNing',      balance:11000,  netWorth:9080},
+  {name:'Chion',        balance:-2500,  netWorth:-4420},
+  {name:'Cozmo',        balance:1980,   netWorth:60},
+  {name:'FortunaKirana',balance:1300,   netWorth:1300},
+  {name:'Gaia',         balance:-250,   netWorth:-970},
+  {name:'Gunbae',       balance:-2500,  netWorth:-4420},
+  {name:'Huakui',       balance:1050,   netWorth:90},
+  {name:'Huangjii',     balance:-2500,  netWorth:-3340},
+  {name:'Jia Ying',     balance:0,      netWorth:0},
+  {name:'Jyun',         balance:2200,   netWorth:2200},
+  {name:'Mojo',         balance:0,      netWorth:-720},
+  {name:'Nishiora',     balance:-1,     netWorth:-1921},
+  {name:'Ogeypeko',     balance:720,    netWorth:0},
+  {name:'RoO',          balance:27814,  netWorth:27094},
+  {name:'Serene',       balance:-1000,  netWorth:-2920},
+  {name:'Skylleria',    balance:-2500,  netWorth:-4420},
+  {name:'Tsurea',       balance:1150,   netWorth:430},
+  {name:'Vorpalpledge', balance:-4100,  netWorth:-4100},
+  {name:'YangKai',      balance:680,    netWorth:680},
+  {name:'Zia',          balance:0,      netWorth:0},
+  {name:'iLYa',         balance:8700,   netWorth:6780},
+  {name:'plop',         balance:2134,   netWorth:1414},
+  {name:'tsukiyue',     balance:6900,   netWorth:6180},
+  {name:'xJunhaox',     balance:1950,   netWorth:750},
+];
+async function applyCrashRecovery(){
+  if(!confirm('Set all 24 affected players to their correct post-semis balances?\n\nCalculated from CSV starting values + every M19/M20/M21 bet.\nSafe to run multiple times.'))return;
+  const el=document.getElementById('crash-status');
+  if(el){el.style.color='var(--gold)';el.textContent='Applying...';}
+  let ok=0,skipped=0;
+  for(const row of CRASH_CORRECT){
+    const p=getPlayer(row.name);
+    if(!p?.id){skipped++;continue;}
+    const batch=writeBatch(_db);
+    batch.update(doc(_db,'players',p.id),{balance:row.balance,netWorth:row.netWorth});
+    await batch.commit();
+    ok++;
+  }
+  const msg=`✅ Done — ${ok} players corrected.${skipped?` ⚠️ ${skipped} not found.`:''}`;
+  if(el){el.style.color='var(--green)';el.textContent=msg;}
+  alert(msg);
 }
 
 async function resetPin(){
@@ -2478,7 +2531,7 @@ Object.assign(globalThis,{
   renderLiveBets,
   renderACorrections, setCorrView, loadCorrBets, saveBetEdit, voidBet, hardDeleteBet,
   saveDiscordWebhook, testDiscordWebhook,
-  resetPin, exportData, clearAllBets, resyncPlayersFromCSV,
+  resetPin, exportData, clearAllBets, resyncPlayersFromCSV, applyCrashRecovery,
 });
 
 // ── BOOT ──────────────────────────────────────
