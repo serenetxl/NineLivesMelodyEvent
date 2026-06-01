@@ -752,7 +752,7 @@ function renderLeaderboard(){
 
   function spotRow(p,rank,opts={}){
     const isMe=norm(p.name)===norm(S.currentUser);
-    const pendTag=p.pending>0?`<span style="font-size:10px;color:var(--gold);background:rgba(201,168,76,.12);border:0.5px solid rgba(201,168,76,.3);border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:middle">⏳ ${fmt(p.pending)}</span>`:'';
+    const pendTag=p.pending>0?`<span style="font-size:10px;color:var(--gold);background:rgba(201,168,76,.12);border:0.5px solid rgba(201,168,76,.3);border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:middle">⏳ ${fmt(p.pending)} CC in bets</span>`:'';
     const rc=opts.rankColor||'var(--gold)';
     const wc=p.worth<0?'var(--red)':(opts.worthColor||'var(--green)');
     return `<div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:0.5px solid rgba(201,168,76,.07)">
@@ -822,7 +822,7 @@ function renderLeaderboard(){
       <div class="avatar" style="${avStyle(p.name)};width:28px;height:28px;font-size:10px;flex-shrink:0">${initials(p.name)}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:${isMe?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}${isMe?' <span style="font-size:10px;color:var(--text-dim)">(you)</span>':''}</div>
-        <div style="font-size:11px;color:var(--text-dim);margin-top:1px">Bal: <span style="color:var(--text)">${fmt(p.spendable)}</span>${(p.debt||0)>0?` · Debt: <span style="color:var(--red)">−${fmt(p.debt)}</span>`:''}</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:1px">Bal: <span style="color:var(--text)">${fmt(p.spendable)}</span>${p.pending>0?` · <span style="color:var(--gold)">⏳ ${fmt(p.pending)} CC locked in bets</span>`:''}${(p.debt||0)>0?` · Debt: <span style="color:var(--red)">−${fmt(p.debt)}</span>`:''}</div>
       </div>
       <span style="font-family:'Cinzel',serif;font-size:14px;color:${p.worth<0?'var(--red)':'var(--green)'};flex-shrink:0">${fmt(p.worth)}</span>
     </div>`;
