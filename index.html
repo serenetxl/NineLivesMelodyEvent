@@ -2242,30 +2242,14 @@ async function testDiscordWebhook(){
 // Ground truth: CSV baseline + every M19/M20/M21 bet outcome.
 // Replaces current Firestore values with correct ones. Idempotent.
 const CRASH_CORRECT=[
-  {name:'AniNing',      balance:11000,  netWorth:9080},
-  {name:'Chion',        balance:-2500,  netWorth:-4420},
-  {name:'Cozmo',        balance:1980,   netWorth:60},
-  {name:'FortunaKirana',balance:1300,   netWorth:1300},
-  {name:'Gaia',         balance:-250,   netWorth:-970},
-  {name:'Gunbae',       balance:-2500,  netWorth:-4420},
-  {name:'Huakui',       balance:1050,   netWorth:90},
-  {name:'Huangjii',     balance:-2500,  netWorth:-3340},
-  {name:'Jia Ying',     balance:0,      netWorth:0},
-  {name:'Jyun',         balance:2200,   netWorth:2200},
-  {name:'Mojo',         balance:0,      netWorth:-720},
-  {name:'Nishiora',     balance:-1,     netWorth:-1921},
-  {name:'Ogeypeko',     balance:720,    netWorth:0},
-  {name:'RoO',          balance:27814,  netWorth:27094},
-  {name:'Serene',       balance:-1000,  netWorth:-2920},
-  {name:'Skylleria',    balance:-2500,  netWorth:-4420},
-  {name:'Tsurea',       balance:1150,   netWorth:430},
-  {name:'Vorpalpledge', balance:-4100,  netWorth:-4100},
-  {name:'YangKai',      balance:680,    netWorth:680},
-  {name:'Zia',          balance:0,      netWorth:0},
-  {name:'iLYa',         balance:8700,   netWorth:6780},
-  {name:'plop',         balance:2134,   netWorth:1414},
-  {name:'tsukiyue',     balance:6900,   netWorth:6180},
-  {name:'xJunhaox',     balance:1950,   netWorth:750},
+  // Verified against: NINELIVES_1st_JUNE.json loanPrincipal values + all M19/M20/M21 bets
+  // Only players whose current balance differs from the ground-truth calculation are listed.
+  // loanPrincipal and debt are NOT changed here — they are already correct in Firestore.
+  {name:'Chion',        balance:0,      netWorth:-4920},  // lost M19+M20+M21; lp=4100 debt=4920
+  {name:'Cozmo',        balance:4480,   netWorth:-440},   // won M19+M21; lp=4100 debt=4920
+  {name:'Gaia',         balance:500,    netWorth:-1120},  // won M19, lost M20+M21; lp=1350 debt=1620
+  {name:'Huangjii',     balance:0,      netWorth:-3840},  // net loser; lp=3200 debt=3840
+  {name:'Serene',       balance:1500,   netWorth:-3420},  // won M19 net; lp=4100 debt=4920
 ];
 async function applyCrashRecovery(){
   if(!confirm('Set all 24 affected players to their correct post-semis balances?\n\nCalculated from CSV starting values + every M19/M20/M21 bet.\nSafe to run multiple times.'))return;
@@ -2310,23 +2294,12 @@ async function clearAllBets(){
 }
 
 // ── REALTIME LISTENERS ────────────────────────
-let _autoResyncDone=false; // run at most once per session
+let _autoResyncDone=true; // DISABLED — auto-resync was overwriting live data. Manual resync only via Settings.
 async function _checkAndAutoResync(){
-  if(_autoResyncDone) return;
-  // Check if any CSV player is missing loanPrincipal in Firestore
-  const CSV_NAMES_WITH_LOANS=['Jahbs','Jjooo','Snorkie','Skylleria','iLYa','Petter','Gaia','OPM',
-    'Huangjii','xZel','Tsurea','HotBBQGrill','Mici','Dumamay','plop','Cozmo','xJunhaox','Serene',
-    'Seraliea','Feilong','Ogeypeko','Huakui','tsukiyue','Nishiora','Gunbae','AniNing','Chion','Mojo','RoO'];
-  const needsResync=S.players.some(p=>{
-    // If this player should have a loan but loanPrincipal is 0 or undefined, DB is stale
-    const shouldHaveLoan=CSV_NAMES_WITH_LOANS.includes(p.name);
-    return shouldHaveLoan && !(p.loanPrincipal>0);
-  });
-  if(needsResync){
-    console.log('Auto-resync: stale player economy detected, resyncing silently...');
-    _autoResyncDone=true;
-    await _silentResync();
-  }
+  // Permanently disabled — this function was silently resetting all player balances to CSV
+  // baseline whenever any loan-holding player had loanPrincipal=0 (e.g. after crash recovery edits).
+  // The DB is now correct. Do not auto-resync.
+  return;
 }
 
 async function _silentResync(){
