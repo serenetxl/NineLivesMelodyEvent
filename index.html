@@ -1805,6 +1805,7 @@ async function applyGovAid(){
     alert('Preview not loaded — navigate away and back to Economy tab to reload.');
     return;
   }
+  console.warn('[NINELIVES] Mass player overwrite triggered: applyGovAid()');
   const btn=document.getElementById('gov-aid-btn');
   if(btn){btn.disabled=true;btn.textContent='Applying…';}
 
@@ -1844,6 +1845,7 @@ async function undoGovAid(){
   const recipients=S.players.filter(p=>p.govAidPhase===GOV_AID_PHASE&&(p.govAidAmount||0)>0);
   if(!recipients.length){alert('No gov aid to undo for phase: '+GOV_AID_PHASE);return;}
   if(!confirm('Undo government aid for '+recipients.length+' player(s)? This reverses their aid amounts.'))return;
+  console.warn('[NINELIVES] Mass player overwrite triggered: undoGovAid()');
   const CHUNK=400;
   for(let i=0;i<recipients.length;i+=CHUNK){
     const batch=writeBatch(_db);
@@ -2006,12 +2008,7 @@ async function hardDeleteBet(betId){
 // ── ADMIN: SETTINGS ───────────────────────────
 function renderASettings(){
   document.getElementById('a-settings').innerHTML=`
-    <div class="card" style="border-color:rgba(192,64,64,.5)">
-      <div style="font-weight:500;margin-bottom:4px;color:var(--red)">🚨 Crash Recovery — Semis Settlement</div>
-      <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px">Restores ALL 57 players to the <strong>crash_file.json</strong> save point. Overwrites balance, loanPrincipal, debt, netWorth, status. Bets and matches untouched.</div>
-      <div id="crash-status" style="font-size:12px;margin-bottom:8px"></div>
-      <button class="btn btn-danger btn-sm" onclick="applyCrashRecovery()">⚡ Apply crash recovery</button>
-    </div>
+
     <div class="card">
       <div style="font-weight:500;margin-bottom:6px">📣 Discord Webhook</div>
       <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">
@@ -2046,15 +2043,7 @@ function renderASettings(){
       <div id="json-restore-preview" style="font-size:12px;color:var(--text-dim);margin-bottom:8px"></div>
       <button class="btn btn-gold btn-sm" id="json-restore-btn" onclick="applyJsonRestore()" style="display:none">📂 Apply restore</button>
     </div>
-    <div class="card" style="border-color:rgba(201,168,76,.4)">
-      <div style="font-weight:500;margin-bottom:4px">🔄 Player Economy Resync</div>
-      <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px">
-        Overwrites balance, loanPrincipal, interestOwed, debt, netWorth from CSV snapshot.<br>
-        <strong style="color:var(--gold)">Does NOT touch bets, matches, or config.</strong>
-      </div>
-      <div id="resync-status" style="font-size:12px;margin-bottom:8px"></div>
-      <button class="btn btn-gold btn-sm" onclick="resyncPlayersFromCSV()">↻ Resync player economy from CSV</button>
-    </div>
+
     <div class="card">
       <div style="font-weight:500;margin-bottom:8px">Export backup</div>
       <button class="btn btn-gold btn-sm" onclick="exportData()">Export JSON</button>
@@ -2084,103 +2073,6 @@ function renderASettings(){
 // ── PLAYER ECONOMY RESYNC ─────────────────────
 // Hardcoded from CSV snapshot (May 2026). Overwrites stale Firestore player docs.
 // Matches by name. Does NOT touch bets, matches, or config.
-async function resyncPlayersFromCSV(){
-  if(!confirm('Resync all player economy data from CSV snapshot?\n\nThis overwrites balance, loanPrincipal, interestOwed, debt, and netWorth for all matched players.\nBets, matches, and config are NOT affected.'))return;
-  const statusEl=document.getElementById('resync-status');
-  if(statusEl){statusEl.style.color='var(--gold)';statusEl.textContent='Resyncing...';}
-
-  // SOURCE OF TRUTH — mapped directly from CSV columns:
-  // balance = "Your Current Bettable Amount (Before Loan Repayment)"
-  // loanPrincipal = "Loans (Total Max Loan: 1600)"
-  // interestOwed = "Interest"
-  // netWorth = "Actual Balance After Loan Repayment"
-  // debt = loanPrincipal + interestOwed
-  const CSV=[
-    {name:"Jahbs",        balance:100,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1820},
-    {name:"Jjooo",        balance:200,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1720},
-    {name:"Snorkie",      balance:200,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1720},
-    {name:"Skylleria",    balance:250,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1670},
-    {name:"iLYa",         balance:300,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1620},
-    {name:"Petter",       balance:0,     loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:-720},
-    {name:"Gaia",         balance:250,   loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:-470},
-    {name:"OPM",          balance:700,   loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:-20},
-    {name:"Hel",          balance:0,     loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:0},
-    {name:"Sanhua",       balance:100,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:100},
-    {name:"Zia",          balance:100,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:100},
-    {name:"Huangjii",     balance:1050,  loanPrincipal:700,  interestOwed:140, debt:840,  netWorth:210},
-    {name:"Python",       balance:250,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:250},
-    {name:"xZel",         balance:2200,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:280},
-    {name:"AutisticPickle",balance:300,  loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
-    {name:"Cai",          balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
-    {name:"HaaanZ",       balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
-    {name:"Jade-Rooster", balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
-    {name:"Nshki",        balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
-    {name:"XE",           balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
-    {name:"XNeaR",        balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
-    {name:"Yumad",        balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
-    {name:"Tsurea",       balance:1050,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:330},
-    {name:"Angel (LilMilotic)",balance:400,loanPrincipal:0,  interestOwed:0,   debt:0,    netWorth:400},
-    {name:"Villya",       balance:400,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:400},
-    {name:"deeepeee",     balance:450,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:450},
-    {name:"OishiEdo",     balance:450,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:450},
-    {name:"Reito",        balance:500,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:500},
-    {name:"TK",           balance:500,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:500},
-    {name:"Lviv",         balance:600,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:600},
-    {name:"SirShadow",    balance:600,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:600},
-    {name:"Togez",        balance:600,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:600},
-    {name:"HotBBQGrill",  balance:850,   loanPrincipal:200,  interestOwed:40,  debt:240,  netWorth:610},
-    {name:"Mici",         balance:1000,  loanPrincipal:300,  interestOwed:60,  debt:360,  netWorth:640},
-    {name:"Alrenq",       balance:750,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:750},
-    {name:"YangKai",      balance:950,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:950},
-    {name:"Dumamay",      balance:2550,  loanPrincipal:1250, interestOwed:250, debt:1500, netWorth:1050},
-    {name:"Vorpalpledge", balance:1300,  loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:1300},
-    {name:"plop",         balance:2132,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:1412},
-    {name:"FortunaKirana",balance:1500,  loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:1500},
-    {name:"Cozmo",        balance:3480,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:1560},
-    {name:"xJunhaox",     balance:2950,  loanPrincipal:1000, interestOwed:200, debt:1200, netWorth:1750},
-    {name:"Serene",       balance:3800,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:1880},
-    {name:"Seraliea",     balance:2700,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:1980},
-    {name:"Feilong",      balance:3000,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:2280},
-    {name:"Ogeypeko",     balance:3000,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:2280},
-    {name:"Huakui",       balance:3550,  loanPrincipal:800,  interestOwed:160, debt:960,  netWorth:2590},
-    {name:"tsukiyue",     balance:3450,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:2730},
-    {name:"Jia Ying",     balance:3900,  loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:3900},
-    {name:"Nishiora",     balance:5900,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:3980},
-    {name:"Jyun",         balance:4200,  loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:4200},
-    {name:"Gunbae",       balance:6150,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:4230},
-    {name:"AniNing",      balance:8000,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:6080},
-    {name:"Chion",        balance:8030,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:6110},
-    {name:"Mojo",         balance:17580, loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:16860},
-    {name:"RoO",          balance:37814, loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:37094},
-  ];
-
-  const csvMap={};
-  CSV.forEach(r=>{ csvMap[norm(r.name)]=r; });
-
-  let matched=0,skipped=0,notFound=[];
-  const players=[...S.players];
-  const CHUNK=400;
-  for(let i=0;i<players.length;i+=CHUNK){
-    const batch=writeBatch(_db);
-    players.slice(i,i+CHUNK).forEach(p=>{
-      const row=csvMap[norm(p.name)];
-      if(!row){notFound.push(p.name);skipped++;return;}
-      // Preserve govAid fields — resync should not undo applied aid
-      batch.update(doc(_db,'players',p.id),{
-        balance:       row.balance,
-        loanPrincipal: row.loanPrincipal,
-        interestOwed:  row.interestOwed,
-        debt:          row.debt,
-        netWorth:      row.netWorth,
-      });
-      matched++;
-    });
-    await batch.commit();
-  }
-  const msg=`✅ Resynced ${matched} players.${skipped?' ⚠️ '+skipped+' not in CSV: '+notFound.join(', '):''}`;
-  if(statusEl){statusEl.style.color='var(--green)';statusEl.textContent=msg;}
-  alert(msg);
-}
 
 async function saveDiscordWebhook(){
   const url=(document.getElementById('discord-webhook-input')?.value||'').trim();
@@ -2202,93 +2094,6 @@ async function testDiscordWebhook(){
 // Ground truth: CSV baseline + every M19/M20/M21 bet outcome.
 // Replaces current Firestore values with correct ones. Idempotent.
 // Restore snapshot — all 57 players from crash_file.json (pre-crash save point)
-const CRASH_CORRECT=[
-  {name:'Alrenq', balance:750, loanPrincipal:0, interestOwed:0, debt:0, netWorth:750, status:'spectator'},
-  {name:'Angel (LilMilotic)', balance:400, loanPrincipal:0, interestOwed:0, debt:0, netWorth:400, status:'spectator'},
-  {name:'AniNing', balance:8000, loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:6080, status:'spectator'},
-  {name:'AutisticPickle', balance:300, loanPrincipal:0, interestOwed:0, debt:0, netWorth:300, status:'spectator'},
-  {name:'Cai', balance:300, loanPrincipal:0, interestOwed:0, debt:0, netWorth:300, status:'spectator'},
-  {name:'Chion', balance:8030, loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:6110, status:'active'},
-  {name:'Cozmo', balance:3480, loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:1560, status:'spectator'},
-  {name:'Dumamay', balance:2550, loanPrincipal:1250, interestOwed:250, debt:1500, netWorth:1050, status:'spectator'},
-  {name:'Feilong', balance:3000, loanPrincipal:600, interestOwed:120, debt:720, netWorth:2280, status:'spectator'},
-  {name:'FortunaKirana', balance:1500, loanPrincipal:0, interestOwed:0, debt:0, netWorth:1500, status:'spectator'},
-  {name:'Gaia', balance:250, loanPrincipal:600, interestOwed:120, debt:720, netWorth:-470, status:'spectator'},
-  {name:'Gunbae', balance:6150, loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:4230, status:'spectator'},
-  {name:'HaaanZ', balance:300, loanPrincipal:0, interestOwed:0, debt:0, netWorth:300, status:'spectator'},
-  {name:'Hel', balance:0, loanPrincipal:0, interestOwed:0, debt:0, netWorth:0, status:'spectator'},
-  {name:'HotBBQGrill', balance:850, loanPrincipal:200, interestOwed:40, debt:240, netWorth:610, status:'eliminated'},
-  {name:'Huakui', balance:3550, loanPrincipal:800, interestOwed:160, debt:960, netWorth:2590, status:'eliminated'},
-  {name:'Huangjii', balance:1050, loanPrincipal:700, interestOwed:140, debt:840, netWorth:210, status:'active'},
-  {name:'Jade-Rooster', balance:300, loanPrincipal:0, interestOwed:0, debt:0, netWorth:300, status:'spectator'},
-  {name:'Jahbs', balance:100, loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1820, status:'eliminated'},
-  {name:'Jia Ying', balance:3900, loanPrincipal:0, interestOwed:0, debt:0, netWorth:3900, status:'eliminated'},
-  {name:'Jjooo', balance:200, loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1720, status:'spectator'},
-  {name:'Jyun', balance:4200, loanPrincipal:0, interestOwed:0, debt:0, netWorth:4200, status:'spectator'},
-  {name:'Lviv', balance:600, loanPrincipal:0, interestOwed:0, debt:0, netWorth:600, status:'spectator'},
-  {name:'Mici', balance:1000, loanPrincipal:300, interestOwed:60, debt:360, netWorth:640, status:'spectator'},
-  {name:'Mojo', balance:17580, loanPrincipal:600, interestOwed:120, debt:720, netWorth:16860, status:'active'},
-  {name:'Nishiora', balance:5900, loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:3980, status:'spectator'},
-  {name:'Nshki', balance:300, loanPrincipal:0, interestOwed:0, debt:0, netWorth:300, status:'spectator'},
-  {name:'OPM', balance:700, loanPrincipal:600, interestOwed:120, debt:720, netWorth:-20, status:'active'},
-  {name:'Ogeypeko', balance:3000, loanPrincipal:600, interestOwed:120, debt:720, netWorth:2280, status:'spectator'},
-  {name:'OishiEdo', balance:450, loanPrincipal:0, interestOwed:0, debt:0, netWorth:450, status:'spectator'},
-  {name:'Petter', balance:0, loanPrincipal:600, interestOwed:120, debt:720, netWorth:-720, status:'spectator'},
-  {name:'Python', balance:250, loanPrincipal:0, interestOwed:0, debt:0, netWorth:250, status:'spectator'},
-  {name:'Reito', balance:500, loanPrincipal:0, interestOwed:0, debt:0, netWorth:500, status:'eliminated'},
-  {name:'RoO', balance:37814, loanPrincipal:600, interestOwed:120, debt:720, netWorth:37094, status:'spectator'},
-  {name:'Sanhua', balance:100, loanPrincipal:0, interestOwed:0, debt:0, netWorth:100, status:'active'},
-  {name:'Seraliea', balance:2700, loanPrincipal:600, interestOwed:120, debt:720, netWorth:1980, status:'spectator'},
-  {name:'Serene', balance:3800, loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:1880, status:'spectator'},
-  {name:'SirShadow', balance:600, loanPrincipal:0, interestOwed:0, debt:0, netWorth:600, status:'eliminated'},
-  {name:'Skylleria', balance:250, loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1670, status:'spectator'},
-  {name:'Snorkie', balance:200, loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1720, status:'spectator'},
-  {name:'TK', balance:5500, loanPrincipal:0, interestOwed:0, debt:0, netWorth:5500, status:'spectator'},
-  {name:'Testaccount', balance:0, loanPrincipal:0, interestOwed:0, debt:0, netWorth:0, status:'spectator'},
-  {name:'Togez', balance:600, loanPrincipal:0, interestOwed:0, debt:0, netWorth:600, status:'spectator'},
-  {name:'Tsurea', balance:1050, loanPrincipal:600, interestOwed:120, debt:720, netWorth:330, status:'spectator'},
-  {name:'Villya', balance:400, loanPrincipal:0, interestOwed:0, debt:0, netWorth:400, status:'eliminated'},
-  {name:'Vorpalpledge', balance:1300, loanPrincipal:0, interestOwed:0, debt:0, netWorth:1300, status:'spectator'},
-  {name:'XE', balance:300, loanPrincipal:0, interestOwed:0, debt:0, netWorth:300, status:'spectator'},
-  {name:'XNeaR', balance:300, loanPrincipal:0, interestOwed:0, debt:0, netWorth:300, status:'spectator'},
-  {name:'YangKai', balance:950, loanPrincipal:0, interestOwed:0, debt:0, netWorth:950, status:'spectator'},
-  {name:'Yumad', balance:300, loanPrincipal:0, interestOwed:0, debt:0, netWorth:300, status:'spectator'},
-  {name:'Zia', balance:100, loanPrincipal:0, interestOwed:0, debt:0, netWorth:100, status:'eliminated'},
-  {name:'deeepeee', balance:450, loanPrincipal:0, interestOwed:0, debt:0, netWorth:450, status:'eliminated'},
-  {name:'iLYa', balance:300, loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1620, status:'active'},
-  {name:'plop', balance:2132, loanPrincipal:600, interestOwed:120, debt:720, netWorth:1412, status:'spectator'},
-  {name:'tsukiyue', balance:3450, loanPrincipal:600, interestOwed:120, debt:720, netWorth:2730, status:'eliminated'},
-  {name:'xJunhaox', balance:2950, loanPrincipal:1000, interestOwed:200, debt:1200, netWorth:1750, status:'spectator'},
-  {name:'xZel', balance:2200, loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:280, status:'spectator'},
-];
-async function applyCrashRecovery(){
-  if(!confirm('Restore ALL 57 players to the crash_file.json save point?\n\nThis will overwrite balance, loanPrincipal, interestOwed, debt, netWorth, and status for every player.\nBets and matches are NOT affected.\n\nSafe to run multiple times.'))return;
-  const el=document.getElementById('crash-status');
-  if(el){el.style.color='var(--gold)';el.textContent='Restoring '+CRASH_CORRECT.length+' players...';}
-  let ok=0,skipped=0;
-  // Write in chunks of 10 to avoid any rate limits
-  const CHUNK=10;
-  for(let i=0;i<CRASH_CORRECT.length;i+=CHUNK){
-    const batch=writeBatch(_db);
-    CRASH_CORRECT.slice(i,i+CHUNK).forEach(row=>{
-      const p=getPlayer(row.name);
-      if(!p?.id){skipped++;return;}
-      batch.update(doc(_db,'players',p.id),{
-        balance:      row.balance,
-        loanPrincipal:row.loanPrincipal,
-        interestOwed: row.interestOwed,
-        debt:         row.debt,
-        netWorth:     row.netWorth,
-        status:       row.status,
-      });
-      ok++;
-    });
-    await batch.commit();
-  }
-  const msg='✅ Restored '+ok+' players.'+(skipped?' ⚠️ '+skipped+' not found.':'');
-  if(el){el.style.color='var(--green)';el.textContent=msg;}
-  alert(msg);
-}
 
 // ── JSON SAVE POINT RESTORE ──────────────────
 let _jsonRestoreData = null;
@@ -2327,6 +2132,7 @@ async function applyJsonRestore(){
   const count = _jsonRestoreData.players.length;
   if(!confirm('Restore '+count+' players from the uploaded JSON?\n\nThis will overwrite economy fields for all matched players.\nBets and matches are NOT affected.'))return;
   const statusEl = document.getElementById('json-restore-status');
+  console.warn('[NINELIVES] Mass player overwrite triggered: applyJsonRestore()');
   if(statusEl){statusEl.style.color='var(--gold)';statusEl.textContent='Restoring...';}
   let ok=0, skipped=0;
   const CHUNK=10;
@@ -2505,7 +2311,7 @@ Object.assign(globalThis,{
   renderLiveBets, _toggleBets, _toggleCat, _tcP, _tcA, _tcLB,
   renderACorrections, setCorrView, loadCorrBets, saveBetEdit, voidBet, hardDeleteBet,
   saveDiscordWebhook, testDiscordWebhook,
-  resetPin, exportData, clearAllBets, resyncPlayersFromCSV, applyCrashRecovery,
+  resetPin, exportData, clearAllBets,
   previewJsonRestore, applyJsonRestore,
 });
 
