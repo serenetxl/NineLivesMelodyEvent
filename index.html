@@ -68,7 +68,7 @@ textarea{resize:vertical;min-height:80px}
 .match-player-name.winner{color:var(--gold)}
 .match-pot{font-size:11px;color:var(--text-dim);margin-top:2px}
 .vs-sep{font-size:11px;color:var(--text-dim);letter-spacing:.1em}
-.tbl-wrap{border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px}
+.tbl-wrap{border:0.5px solid var(--border);border-radius:var(--radius);overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:12px}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{text-align:left;padding:10px 14px;border-bottom:0.5px solid var(--border);font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;background:var(--bg3);font-weight:500}
 td{padding:10px 14px;border-bottom:0.5px solid rgba(201,168,76,.07)}
@@ -102,6 +102,8 @@ tr:hover td{background:rgba(201,168,76,.03)}
   .lb-full-table{font-size:12px}
   .tab-bar{gap:0}
   .tab{padding:8px 10px;font-size:12px}
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tbl-wrap table{min-width:480px}
 }
 @media(max-width:600px){
   .livebets-match-grid{grid-template-columns:1fr !important}
@@ -654,8 +656,13 @@ function renderPMatches(){
     document.getElementById('p-matches').innerHTML='<div class="alert alert-info">Semifinals matchups coming soon — stay tuned!</div>';
     return;
   }
-  let html='<div class="match-grid">';
-  ms.forEach(m=>{
+  const _pmCats=[];const _pmMap={};
+  ms.forEach(m=>{const cat=m.roundLabel||m.round||'General';if(!_pmMap[cat]){_pmMap[cat]=[];_pmCats.push(cat);}_pmMap[cat].push(m);});
+  let html='';
+  _pmCats.forEach(cat=>{
+    const cms=_pmMap[cat];const done=cms.every(m=>m.status==='done');const k='p-'+cat;const cl=_collapsedCats.has(k);
+    html+=`<button onclick="_toggleCat('${k}',renderPMatches)" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;margin-bottom:8px;font-family:inherit"><div style="display:flex;align-items:center;gap:8px"><span style="font-family:'Cinzel',serif;font-size:12px;color:var(--gold)">${cat}</span><span style="font-size:11px;color:var(--text-dim)">${cms.length} match${cms.length!==1?'es':''}</span>${done?'<span class=\"badge badge-done\" style=\"font-size:10px;padding:1px 6px\">All done</span>':''}</div><span style="color:var(--text-dim);font-size:11px">${cl?'▶':'▼'}</span></button>`;
+    if(!cl){html+='<div class="match-grid">';cms.forEach(m=>{
     const myBets = S.bets.filter(b=>b.matchId===m.id&&norm(b.playerName)===norm(S.currentUser)&&b.result!=='voided');
     const myActive = myBets.filter(b=>b.result===null);
     const p1pot = S.bets.filter(b=>b.matchId===m.id&&norm(b.pick)===norm(m.p1)&&b.result!=='voided').reduce((s,b)=>s+b.amount,0);
@@ -734,13 +741,16 @@ function renderPMatches(){
       ${myBetsSummary}
       ${m.status!=='done'&&m.bettingOpen?`<button class="btn btn-gold btn-full" style="margin-top:6px" onclick="openBetModal('${m.id}')">${myActive.length?'Add Another Bet':'Place Bet'}</button>`:''}
     </div>`;
-  });
-  html+='</div>';
+    });html+='</div>';} // close cms.forEach + match-grid + if !cl
+  }); // close _pmCats.forEach
   document.getElementById('p-matches').innerHTML=html;
 }
 
 // ── PLAYER: LEADERBOARD ──────────────────────
-let _lbSort='desc'; // 'desc'=NW high→low | 'asc'=NW low→high | 'alpha'=A-Z
+let _lbSort='desc';
+let _collapsedCats=new Set();
+function _toggleCat(key,fn){if(_collapsedCats.has(key))_collapsedCats.delete(key);else _collapsedCats.add(key);fn();}
+ // 'desc'=NW high→low | 'asc'=NW low→high | 'alpha'=A-Z
 function setLbSort(s){_lbSort=s;renderLeaderboard();}
 
 function renderLeaderboard(){
@@ -1078,6 +1088,8 @@ async function takeLoan(){
 
 
 // ── LIVE BETS VIEW ────────────────────────────
+function _toggleBets(colId,total){var d=document.getElementById(colId);var b=document.getElementById('btn-'+colId);if(!d||!b)return;var open=d.style.display!=='none';d.style.display=open?'none':'';b.innerHTML=open?'▼ '+total+' bet'+(total!==1?'s':''):'▲ Hide bets';}
+
 function renderLiveBets(containerId){
   const el=document.getElementById(containerId);
   if(!el) return;
@@ -1122,8 +1134,12 @@ function renderLiveBets(containerId){
     el.innerHTML=html; return;
   }
 
-  html+='<div class="livebets-match-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
-  sorted.forEach(m=>{
+  const _lbCats=[];const _lbMap={};
+  sorted.forEach(m=>{const cat=m.roundLabel||m.round||'General';if(!_lbMap[cat]){_lbMap[cat]=[];_lbCats.push(cat);}_lbMap[cat].push(m);});
+  _lbCats.forEach(cat=>{
+    const cms=_lbMap[cat];const done=cms.every(m=>m.status==='done');const k='lb-'+cat;const cl=_collapsedCats.has(k);
+    html+=`<button onclick="_toggleCat('${k}',()=>renderLiveBets('${containerId}'))" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;margin-bottom:8px;font-family:inherit"><div style="display:flex;align-items:center;gap:6px"><span style="font-family:'Cinzel',serif;font-size:12px;color:var(--gold)">${cat}</span>${done?'<span class=\"badge badge-done\" style=\"font-size:10px;padding:1px 6px\">All done</span>':''}</div><span style="color:var(--text-dim);font-size:11px">${cl?'▶':'▼'}</span></button>`;
+    if(!cl){html+='<div class="livebets-match-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';cms.forEach(m=>{
     const bets=(matchMap[m.id]?.bets||[]);
     const activeBets=bets.filter(b=>b.result===null);
     const isRanked=m.matchType==='ranked';
@@ -1224,10 +1240,7 @@ function renderLiveBets(containerId){
           <span style="font-family:'Cinzel',serif;font-size:14px;color:${m.winner===m.p2?'var(--gold)':'var(--text)'}">${m.p2}${m.winner===m.p2?' ✦':''}</span>
         </div>`;
 
-    // Toggle function — flip display and button label
-    const togFn=`(function(){var d=document.getElementById('${colId}');var b=document.getElementById('btn-${colId}');if(!d)return;var open=d.style.display!=='none';d.style.display=open?'none':'';b.innerHTML=open?'▼ ${bets.length} bet${bets.length!==1?'s':''}':'▲ Hide bets';})()`;
-
-    html+=`<div class="card" style="padding:10px 12px;${m.bettingOpen?'border-color:rgba(74,156,110,.4)':''}">
+        html+=`<div class="card" style="padding:10px 12px;${m.bettingOpen?'border-color:rgba(74,156,110,.4)':''}">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:6px">
         <div style="min-width:0">
           <div style="font-size:10px;color:var(--text-dim);margin-bottom:2px">${m.id}${m.day?' · '+m.day:''}</div>
@@ -1237,20 +1250,27 @@ function renderLiveBets(containerId){
       </div>
       ${potHtml}
       ${bets.length>0
-        ?`<button id="btn-${colId}" onclick="${togFn}" style="width:100%;margin-top:4px;padding:4px 8px;font-size:11px;color:var(--text-dim);background:var(--bg3);border:0.5px solid var(--border);border-radius:4px;cursor:pointer;font-family:inherit;text-align:left">▼ ${bets.length} bet${bets.length!==1?'s':''}</button>`
+        ?`<button id="btn-${colId}" onclick="_toggleBets('${colId}',${bets.length})" style="width:100%;margin-top:4px;padding:4px 8px;font-size:11px;color:var(--text-dim);background:var(--bg3);border:0.5px solid var(--border);border-radius:4px;cursor:pointer;font-family:inherit;text-align:left">▼ ${bets.length} bet${bets.length!==1?'s':''}</button>`
         :'<div style="font-size:11px;color:var(--text-dim);margin-top:4px">No bets yet</div>'}
       ${betRows}
     </div>`;
   });
 
-  html+='</div>'; // close match 2-col grid
+      html+='</div>'; // close livebets-match-grid
+    } // if !cl
+  }); // _lbCats.forEach
   el.innerHTML=html;
 }
 // ── ADMIN: MATCHES ────────────────────────────
 function renderAMatches(){
   let html=`<div style="margin-bottom:14px"><button class="btn btn-gold btn-sm" onclick="openAddMatchModal()">+ Add Match</button></div>`;
   if(!S.matches.length){html+='<div class="alert alert-info">No matches yet. Add semifinals matchups above.</div>';}
-  S.matches.forEach(m=>{
+  const _amCats=[];const _amMap={};
+  S.matches.forEach(m=>{const cat=m.roundLabel||m.round||'General';if(!_amMap[cat]){_amMap[cat]=[];_amCats.push(cat);}_amMap[cat].push(m);});
+  _amCats.forEach(cat=>{
+    const cms=_amMap[cat];const done=cms.every(m=>m.status==='done');const k='a-'+cat;const cl=_collapsedCats.has(k);
+    html+=`<button onclick="_toggleCat('${k}',renderAMatches)" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--bg3);border:0.5px solid ${done?'rgba(74,127,192,.35)':'var(--border)'};border-radius:var(--radius-sm);cursor:pointer;margin-bottom:8px;font-family:inherit"><div style="display:flex;align-items:center;gap:8px"><span style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold)">${cat}</span><span style="font-size:11px;color:var(--text-dim)">${cms.length} match${cms.length!==1?'es':''}</span>${done?'<span class=\"badge badge-done\" style=\"font-size:10px;padding:1px 6px\">All done</span>':''}</div><span style="color:var(--text-dim);font-size:11px">${cl?'▶ Show':'▼ Hide'}</span></button>`;
+    if(!cl){cms.forEach(m=>{
     const bc=S.bets.filter(b=>b.matchId===m.id&&b.result!=='voided').length;
     const p1p=S.bets.filter(b=>b.matchId===m.id&&norm(b.pick)===norm(m.p1)&&b.result!=='voided').reduce((s,b)=>s+b.amount,0);
     const p2p=S.bets.filter(b=>b.matchId===m.id&&norm(b.pick)===norm(m.p2)&&b.result!=='voided').reduce((s,b)=>s+b.amount,0);
@@ -1294,7 +1314,8 @@ function renderAMatches(){
         <button class="btn btn-sm btn-danger" onclick="deleteMatch('${m.id}')">Delete</button>
       </div>
     </div>`;
-  });
+    });} // close cms.forEach + if !cl
+  }); // _amCats.forEach
   document.getElementById('a-matches').innerHTML=html;
 }
 
@@ -1663,7 +1684,11 @@ async function submitEditBalance(name){
   const baseBalance=parseInt(document.getElementById('eb-balance').value)||0;
   const bonus=Math.max(0,parseInt(document.getElementById('eb-bonus')?.value)||0);
   const balance=baseBalance+bonus;  // bonus added to balance
-  const loanPrincipal=Math.max(0,parseInt(document.getElementById('eb-principal')?.value)||0);
+  // Keep existing loanPrincipal if field is blank/0 — prevents accidental corruption
+  const rawPrincipal=document.getElementById('eb-principal')?.value;
+  const loanPrincipal=rawPrincipal!==null&&rawPrincipal!==''
+    ? Math.max(0,parseInt(rawPrincipal)||0)
+    : (p.loanPrincipal||0);
   const interestOwed=Math.round(loanPrincipal*0.2);
   const debt=loanPrincipal+interestOwed;
   const netWorth=balance-debt;  // netWorth also increases by bonus amount
@@ -2433,103 +2458,16 @@ async function clearAllBets(){
 }
 
 // ── REALTIME LISTENERS ────────────────────────
-let _autoResyncDone=true; // DISABLED — auto-resync was overwriting live data. Manual resync only via Settings.
-async function _checkAndAutoResync(){
-  // Permanently disabled — this function was silently resetting all player balances to CSV
-  // baseline whenever any loan-holding player had loanPrincipal=0 (e.g. after crash recovery edits).
-  // The DB is now correct. Do not auto-resync.
-  return;
-}
-
-async function _silentResync(){
-  const CSV=[
-    {name:"Jahbs",        balance:100,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1820},
-    {name:"Jjooo",        balance:200,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1720},
-    {name:"Snorkie",      balance:200,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1720},
-    {name:"Skylleria",    balance:250,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1670},
-    {name:"iLYa",         balance:300,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1620},
-    {name:"Petter",       balance:0,     loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:-720},
-    {name:"Gaia",         balance:250,   loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:-470},
-    {name:"OPM",          balance:700,   loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:-20},
-    {name:"Hel",          balance:0,     loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:0},
-    {name:"Sanhua",       balance:100,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:100},
-    {name:"Zia",          balance:100,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:100},
-    {name:"Huangjii",     balance:1050,  loanPrincipal:700,  interestOwed:140, debt:840,  netWorth:210},
-    {name:"Python",       balance:250,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:250},
-    {name:"xZel",         balance:2200,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:280},
-    {name:"AutisticPickle",balance:300,  loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
-    {name:"Cai",          balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
-    {name:"HaaanZ",       balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
-    {name:"Jade-Rooster", balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
-    {name:"Nshki",        balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
-    {name:"XE",           balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
-    {name:"XNeaR",        balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
-    {name:"Yumad",        balance:300,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:300},
-    {name:"Tsurea",       balance:1050,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:330},
-    {name:"Angel (LilMilotic)",balance:400,loanPrincipal:0,  interestOwed:0,   debt:0,    netWorth:400},
-    {name:"Villya",       balance:400,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:400},
-    {name:"deeepeee",     balance:450,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:450},
-    {name:"OishiEdo",     balance:450,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:450},
-    {name:"Reito",        balance:500,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:500},
-    {name:"TK",           balance:500,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:500},
-    {name:"Lviv",         balance:600,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:600},
-    {name:"SirShadow",    balance:600,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:600},
-    {name:"Togez",        balance:600,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:600},
-    {name:"HotBBQGrill",  balance:850,   loanPrincipal:200,  interestOwed:40,  debt:240,  netWorth:610},
-    {name:"Mici",         balance:1000,  loanPrincipal:300,  interestOwed:60,  debt:360,  netWorth:640},
-    {name:"Alrenq",       balance:750,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:750},
-    {name:"YangKai",      balance:950,   loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:950},
-    {name:"Dumamay",      balance:2550,  loanPrincipal:1250, interestOwed:250, debt:1500, netWorth:1050},
-    {name:"Vorpalpledge", balance:1300,  loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:1300},
-    {name:"plop",         balance:2132,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:1412},
-    {name:"FortunaKirana",balance:1500,  loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:1500},
-    {name:"Cozmo",        balance:3480,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:1560},
-    {name:"xJunhaox",     balance:2950,  loanPrincipal:1000, interestOwed:200, debt:1200, netWorth:1750},
-    {name:"Serene",       balance:3800,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:1880},
-    {name:"Seraliea",     balance:2700,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:1980},
-    {name:"Feilong",      balance:3000,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:2280},
-    {name:"Ogeypeko",     balance:3000,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:2280},
-    {name:"Huakui",       balance:3550,  loanPrincipal:800,  interestOwed:160, debt:960,  netWorth:2590},
-    {name:"tsukiyue",     balance:3450,  loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:2730},
-    {name:"Jia Ying",     balance:3900,  loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:3900},
-    {name:"Nishiora",     balance:5900,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:3980},
-    {name:"Jyun",         balance:4200,  loanPrincipal:0,    interestOwed:0,   debt:0,    netWorth:4200},
-    {name:"Gunbae",       balance:6150,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:4230},
-    {name:"AniNing",      balance:8000,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:6080},
-    {name:"Chion",        balance:8030,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:6110},
-    {name:"Mojo",         balance:17580, loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:16860},
-    {name:"RoO",          balance:37814, loanPrincipal:600,  interestOwed:120, debt:720,  netWorth:37094},
-  ];
-  const csvMap={};
-  CSV.forEach(r=>{csvMap[norm(r.name)]=r;});
-  const players=[...S.players];
-  const CHUNK=400;
-  for(let i=0;i<players.length;i+=CHUNK){
-    const batch=writeBatch(_db);
-    players.slice(i,i+CHUNK).forEach(p=>{
-      const row=csvMap[norm(p.name)]; if(!row) return;
-      // Preserve govAid fields — resync should not undo applied aid
-      batch.update(doc(_db,'players',p.id),{
-        balance:       row.balance,
-        loanPrincipal: row.loanPrincipal,
-        interestOwed:  row.interestOwed,
-        debt:          row.debt,
-        netWorth:      row.netWorth,
-      });
-    });
-    await batch.commit();
-  }
-  console.log('Auto-resync complete.');
-}
+// Auto-resync PERMANENTLY REMOVED — was overwriting live balances.
+// Use Admin → Settings → Restore from JSON for manual recovery.
+async function _checkAndAutoResync(){ return; }
+async function _silentResync(){ return; }
 
 function subscribeAll(){
   _unsubs.forEach(u=>u());_unsubs=[];
   _unsubs.push(onSnapshot(_col.players(),snap=>{
     S.players=snap.docs.map(d=>({id:d.id,...d.data()}));
     S.players.sort((a,b)=>a.name.localeCompare(b.name));
-    // Auto-resync: if any player from the CSV is missing loanPrincipal or has stale debt,
-    // silently run the economy resync to fix stale Firestore docs.
-    _checkAndAutoResync();
     refreshCurrentView();
   }));
   _unsubs.push(onSnapshot(_col.matches(),snap=>{
@@ -2640,7 +2578,7 @@ Object.assign(globalThis,{
   toggleLoanOpen, addDebtCapRound, removeDebtCapRound,
   reopenMatch, takeLoan,
   applyGovAid, undoGovAid,
-  renderLiveBets,
+  renderLiveBets, _toggleBets, _toggleCat,
   renderACorrections, setCorrView, loadCorrBets, saveBetEdit, voidBet, hardDeleteBet,
   saveDiscordWebhook, testDiscordWebhook,
   resetPin, exportData, clearAllBets, resyncPlayersFromCSV, applyCrashRecovery,
