@@ -661,7 +661,7 @@ function renderPMatches(){
   let html='';
   _pmCats.forEach(cat=>{
     const cms=_pmMap[cat];const done=cms.every(m=>m.status==='done');const k='p-'+cat;const cl=_collapsedCats.has(k);
-    html+=`<button onclick="_toggleCat('${k}',renderPMatches)" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;margin-bottom:8px;font-family:inherit"><div style="display:flex;align-items:center;gap:8px"><span style="font-family:'Cinzel',serif;font-size:12px;color:var(--gold)">${cat}</span><span style="font-size:11px;color:var(--text-dim)">${cms.length} match${cms.length!==1?'es':''}</span>${done?'<span class=\"badge badge-done\" style=\"font-size:10px;padding:1px 6px\">All done</span>':''}</div><span style="color:var(--text-dim);font-size:11px">${cl?'▶':'▼'}</span></button>`;
+    html+=`<button onclick="_tcP('${k}')" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;margin-bottom:8px;font-family:inherit"><div style="display:flex;align-items:center;gap:8px"><span style="font-family:'Cinzel',serif;font-size:12px;color:var(--gold)">${cat}</span><span style="font-size:11px;color:var(--text-dim)">${cms.length} match${cms.length!==1?'es':''}</span>${done?'<span class=\"badge badge-done\" style=\"font-size:10px;padding:1px 6px\">All done</span>':''}</div><span style="color:var(--text-dim);font-size:11px">${cl?'▶':'▼'}</span></button>`;
     if(!cl){html+='<div class="match-grid">';cms.forEach(m=>{
     const myBets = S.bets.filter(b=>b.matchId===m.id&&norm(b.playerName)===norm(S.currentUser)&&b.result!=='voided');
     const myActive = myBets.filter(b=>b.result===null);
@@ -750,6 +750,10 @@ function renderPMatches(){
 let _lbSort='desc';
 let _collapsedCats=new Set();
 function _toggleCat(key,fn){if(_collapsedCats.has(key))_collapsedCats.delete(key);else _collapsedCats.add(key);fn();}
+// Thin wrappers so onclick attributes stay quote-safe
+function _tcP(k){_toggleCat(k,renderPMatches);}
+function _tcA(k){_toggleCat(k,renderAMatches);}
+function _tcLB(k,cid){_toggleCat(k,()=>renderLiveBets(cid));}
  // 'desc'=NW high→low | 'asc'=NW low→high | 'alpha'=A-Z
 function setLbSort(s){_lbSort=s;renderLeaderboard();}
 
@@ -1111,7 +1115,7 @@ function renderLiveBets(containerId){
   });
 
   const totalActiveBets=S.bets.filter(b=>b.result===null&&b.result!=='voided').length;
-  const totalPot=S.bets.filter(b=>b.result!=='voided').reduce((s,b)=>s+b.amount,0);
+  const totalPot=S.bets.filter(b=>b.result===null).reduce((s,b)=>s+b.amount,0); // active only
 
   let html=`
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
@@ -1120,7 +1124,7 @@ function renderLiveBets(containerId){
         <div style="font-family:'Cinzel',serif;font-size:22px;color:var(--gold)">${totalActiveBets}</div>
       </div>
       <div style="background:var(--bg3);border-radius:var(--radius);padding:12px;text-align:center">
-        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total CC at stake</div>
+        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">CC in active bets</div>
         <div style="font-family:'Cinzel',serif;font-size:22px;color:var(--gold)">${fmt(totalPot)}</div>
       </div>
       <div style="background:var(--bg3);border-radius:var(--radius);padding:12px;text-align:center">
@@ -1138,7 +1142,7 @@ function renderLiveBets(containerId){
   sorted.forEach(m=>{const cat=m.roundLabel||m.round||'General';if(!_lbMap[cat]){_lbMap[cat]=[];_lbCats.push(cat);}_lbMap[cat].push(m);});
   _lbCats.forEach(cat=>{
     const cms=_lbMap[cat];const done=cms.every(m=>m.status==='done');const k='lb-'+cat;const cl=_collapsedCats.has(k);
-    html+=`<button onclick="_toggleCat('${k}',()=>renderLiveBets('${containerId}'))" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;margin-bottom:8px;font-family:inherit"><div style="display:flex;align-items:center;gap:6px"><span style="font-family:'Cinzel',serif;font-size:12px;color:var(--gold)">${cat}</span>${done?'<span class=\"badge badge-done\" style=\"font-size:10px;padding:1px 6px\">All done</span>':''}</div><span style="color:var(--text-dim);font-size:11px">${cl?'▶':'▼'}</span></button>`;
+    html+=`<button onclick="_tcLB('${k}','${containerId}')" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;margin-bottom:8px;font-family:inherit"><div style="display:flex;align-items:center;gap:6px"><span style="font-family:'Cinzel',serif;font-size:12px;color:var(--gold)">${cat}</span>${done?'<span class=\"badge badge-done\" style=\"font-size:10px;padding:1px 6px\">All done</span>':''}</div><span style="color:var(--text-dim);font-size:11px">${cl?'▶':'▼'}</span></button>`;
     if(!cl){html+='<div class="livebets-match-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';cms.forEach(m=>{
     const bets=(matchMap[m.id]?.bets||[]);
     const activeBets=bets.filter(b=>b.result===null);
@@ -1269,7 +1273,7 @@ function renderAMatches(){
   S.matches.forEach(m=>{const cat=m.roundLabel||m.round||'General';if(!_amMap[cat]){_amMap[cat]=[];_amCats.push(cat);}_amMap[cat].push(m);});
   _amCats.forEach(cat=>{
     const cms=_amMap[cat];const done=cms.every(m=>m.status==='done');const k='a-'+cat;const cl=_collapsedCats.has(k);
-    html+=`<button onclick="_toggleCat('${k}',renderAMatches)" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--bg3);border:0.5px solid ${done?'rgba(74,127,192,.35)':'var(--border)'};border-radius:var(--radius-sm);cursor:pointer;margin-bottom:8px;font-family:inherit"><div style="display:flex;align-items:center;gap:8px"><span style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold)">${cat}</span><span style="font-size:11px;color:var(--text-dim)">${cms.length} match${cms.length!==1?'es':''}</span>${done?'<span class=\"badge badge-done\" style=\"font-size:10px;padding:1px 6px\">All done</span>':''}</div><span style="color:var(--text-dim);font-size:11px">${cl?'▶ Show':'▼ Hide'}</span></button>`;
+    html+=`<button onclick="_tcA('${k}')" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--bg3);border:0.5px solid ${done?'rgba(74,127,192,.35)':'var(--border)'};border-radius:var(--radius-sm);cursor:pointer;margin-bottom:8px;font-family:inherit"><div style="display:flex;align-items:center;gap:8px"><span style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold)">${cat}</span><span style="font-size:11px;color:var(--text-dim)">${cms.length} match${cms.length!==1?'es':''}</span>${done?'<span class=\"badge badge-done\" style=\"font-size:10px;padding:1px 6px\">All done</span>':''}</div><span style="color:var(--text-dim);font-size:11px">${cl?'▶ Show':'▼ Hide'}</span></button>`;
     if(!cl){cms.forEach(m=>{
     const bc=S.bets.filter(b=>b.matchId===m.id&&b.result!=='voided').length;
     const p1p=S.bets.filter(b=>b.matchId===m.id&&norm(b.pick)===norm(m.p1)&&b.result!=='voided').reduce((s,b)=>s+b.amount,0);
@@ -2578,7 +2582,7 @@ Object.assign(globalThis,{
   toggleLoanOpen, addDebtCapRound, removeDebtCapRound,
   reopenMatch, takeLoan,
   applyGovAid, undoGovAid,
-  renderLiveBets, _toggleBets, _toggleCat,
+  renderLiveBets, _toggleBets, _toggleCat, _tcP, _tcA, _tcLB,
   renderACorrections, setCorrView, loadCorrBets, saveBetEdit, voidBet, hardDeleteBet,
   saveDiscordWebhook, testDiscordWebhook,
   resetPin, exportData, clearAllBets, resyncPlayersFromCSV, applyCrashRecovery,
