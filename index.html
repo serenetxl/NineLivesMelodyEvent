@@ -384,92 +384,12 @@ function getNetWorth(name){
 
 // ── SEED (run once on empty DB) ────────────
 async function initDefault(){
-  const snap = await getDocs(_col.players());
-  if(!snap.empty){ console.log('DB already seeded'); return; }
-  console.log('Seeding fresh DB from CSV snapshot...');
-
-  // ── Player seed — balances directly from CSV snapshot ──────────────────
-  // Schema: { balance, loanPrincipal, interestOwed, debt, netWorth }
-  // loanPrincipal = capital borrowed (used vs cap)
-  // interestOwed  = loanPrincipal * 20%
-  // debt          = loanPrincipal + interestOwed
-  // netWorth      = balance - debt
-  const SEED_PLAYERS = [
-    {name:"Jahbs",        balance:100,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1820, status:"active"},
-    {name:"Jjooo",        balance:200,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1720, status:"spectator"},
-    {name:"Snorkie",      balance:200,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1720, status:"spectator"},
-    {name:"Skylleria",    balance:250,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1670, status:"spectator"},
-    {name:"iLYa",         balance:300,   loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:-1620, status:"active"},
-    {name:"Petter",       balance:0,     loanPrincipal:600, interestOwed:120, debt:720, netWorth:-720,  status:"spectator"},
-    {name:"Gaia",         balance:250,   loanPrincipal:600, interestOwed:120, debt:720, netWorth:-470,  status:"spectator"},
-    {name:"OPM",          balance:700,   loanPrincipal:600, interestOwed:120, debt:720, netWorth:-20,   status:"active"},
-    {name:"Hel",          balance:0,     loanPrincipal:0, interestOwed:0, debt:0,   netWorth:0,     status:"spectator"},
-    {name:"Sanhua",       balance:100,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:100,   status:"active"},
-    {name:"Zia",          balance:100,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:100,   status:"spectator"},
-    {name:"Huangjii",     balance:1050,  loanPrincipal:700, interestOwed:140, debt:840, netWorth:210,   status:"active"},
-    {name:"Python",       balance:250,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:250,   status:"spectator"},
-    {name:"xZel",         balance:2200,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:280,   status:"spectator"},
-    {name:"AutisticPickle",balance:300,  loanPrincipal:0, interestOwed:0, debt:0,   netWorth:300,   status:"spectator"},
-    {name:"Cai",          balance:300,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:300,   status:"spectator"},
-    {name:"HaaanZ",       balance:300,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:300,   status:"spectator"},
-    {name:"Jade-Rooster", balance:300,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:300,   status:"spectator"},
-    {name:"Nshki",        balance:300,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:300,   status:"spectator"},
-    {name:"XE",           balance:300,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:300,   status:"spectator"},
-    {name:"XNeaR",        balance:300,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:300,   status:"spectator"},
-    {name:"Yumad",        balance:300,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:300,   status:"spectator"},
-    {name:"Tsurea",       balance:1050,  loanPrincipal:600, interestOwed:120, debt:720, netWorth:330,   status:"spectator"},
-    {name:"Angel (LilMilotic)",balance:400,loanPrincipal:0, interestOwed:0, debt:0, netWorth:400,   status:"spectator"},
-    {name:"Villya",       balance:400,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:400,   status:"spectator"},
-    {name:"deeepeee",     balance:450,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:450,   status:"spectator"},
-    {name:"OishiEdo",     balance:450,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:450,   status:"spectator"},
-    {name:"Reito",        balance:500,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:500,   status:"active"},
-    {name:"TK",           balance:500,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:500,   status:"spectator"},
-    {name:"Lviv",         balance:600,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:600,   status:"spectator"},
-    {name:"SirShadow",    balance:600,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:600,   status:"active"},
-    {name:"Togez",        balance:600,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:600,   status:"spectator"},
-    {name:"HotBBQGrill",  balance:850,   loanPrincipal:200, interestOwed:40, debt:240,  netWorth:610,   status:"spectator"},
-    {name:"Mici",         balance:1000,  loanPrincipal:300, interestOwed:60, debt:360,  netWorth:640,   status:"spectator"},
-    {name:"Alrenq",       balance:750,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:750,   status:"spectator"},
-    {name:"YangKai",      balance:950,   loanPrincipal:0, interestOwed:0, debt:0,   netWorth:950,   status:"spectator"},
-    {name:"Dumamay",      balance:2550,  loanPrincipal:1250, interestOwed:250, debt:1500, netWorth:1050,  status:"spectator"},
-    {name:"Vorpalpledge", balance:1300,  loanPrincipal:0, interestOwed:0, debt:0,   netWorth:1300,  status:"spectator"},
-    {name:"plop",         balance:2132,  loanPrincipal:600, interestOwed:120, debt:720, netWorth:1412,  status:"spectator"},
-    {name:"FortunaKirana",balance:1500,  loanPrincipal:0, interestOwed:0, debt:0,   netWorth:1500,  status:"spectator"},
-    {name:"Cozmo",        balance:3480,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:1560,  status:"active"},
-    {name:"xJunhaox",     balance:2950,  loanPrincipal:1000, interestOwed:200, debt:1200, netWorth:1750,  status:"spectator"},
-    {name:"Serene",       balance:3800,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:1880,  status:"spectator"},
-    {name:"Seraliea",     balance:2700,  loanPrincipal:600, interestOwed:120, debt:720, netWorth:1980,  status:"spectator"},
-    {name:"Feilong",      balance:3000,  loanPrincipal:600, interestOwed:120, debt:720, netWorth:2280,  status:"spectator"},
-    {name:"Ogeypeko",     balance:3000,  loanPrincipal:600, interestOwed:120, debt:720, netWorth:2280,  status:"spectator"},
-    {name:"Huakui",       balance:3550,  loanPrincipal:800, interestOwed:160, debt:960, netWorth:2590,  status:"spectator"},
-    {name:"tsukiyue",     balance:3450,  loanPrincipal:600, interestOwed:120, debt:720, netWorth:2730,  status:"active"},
-    {name:"Jia Ying",     balance:3900,  loanPrincipal:0, interestOwed:0, debt:0,   netWorth:3900,  status:"spectator"},
-    {name:"Nishiora",     balance:5900,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:3980,  status:"spectator"},
-    {name:"Jyun",         balance:4200,  loanPrincipal:0, interestOwed:0, debt:0,   netWorth:4200,  status:"spectator"},
-    {name:"Gunbae",       balance:6150,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:4230,  status:"active"},
-    {name:"AniNing",      balance:8000,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:6080,  status:"active"},
-    {name:"Chion",        balance:8030,  loanPrincipal:1600, interestOwed:320, debt:1920, netWorth:6110,  status:"active"},
-    {name:"Mojo",         balance:17580, loanPrincipal:600, interestOwed:120, debt:720, netWorth:16860, status:"active"},
-    {name:"RoO",          balance:37814, loanPrincipal:600, interestOwed:120, debt:720, netWorth:37094, status:"active"},
-  ];
-
-  const b = writeBatch(_db);
-  SEED_PLAYERS.forEach((p,i)=>b.set(doc(_db,'players','p'+i), p));
-  await b.commit();
-
-  // Semis matches — TBD placeholders, admin fills in names
-  const SEED_MATCHES = [
-    {id:'SF1',round:'Semis',roundLabel:'Semifinals',p1:'TBD',p2:'TBD',status:'pending',winner:null,bettingOpen:false,day:'Monday',time:''},
-    {id:'SF2',round:'Semis',roundLabel:'Semifinals',p1:'TBD',p2:'TBD',status:'pending',winner:null,bettingOpen:false,day:'Monday',time:''},
-    {id:'SF3',round:'Semis',roundLabel:'Semifinals',p1:'TBD',p2:'TBD',status:'pending',winner:null,bettingOpen:false,day:'Monday',time:''},
-    {id:'SF4',round:'Semis',roundLabel:'Semifinals',p1:'TBD',p2:'TBD',status:'pending',winner:null,bettingOpen:false,day:'Monday',time:''},
-  ];
-  const b2 = writeBatch(_db);
-  SEED_MATCHES.forEach(m=>b2.set(doc(_db,'matches',m.id),m));
-  await b2.commit();
-
-  await setDoc(_cfgDoc(),{loanOpen:false,pins:{},debtCapHistory:[],maxDebt:0});
-  console.log('Seed complete — fresh semis setup ready.');
+  // PERMANENTLY DISABLED — DB is live with real event data.
+  // Root cause of all balance resets: if Firestore returned an empty
+  // snapshot on boot (network hiccup / slow connection), snap.empty
+  // was true and b.set() overwrote all 58 players with CSV values.
+  // Never needs to run again. Data lives in Firestore.
+  console.log('initDefault: skipped (DB is live).');
 }
 
 // ── AUTH ───────────────────────────────────
