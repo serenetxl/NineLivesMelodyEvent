@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- NINELIVES v20260603-0602 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -282,8 +283,8 @@ tr:hover td{background:rgba(201,168,76,.03)}
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+import { getFirestore, doc, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, query, where } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
 const _app = initializeApp({
   apiKey:"AIzaSyB27Beqxzc3LSbNTBLDOo82nEpTfwS7Cko",
@@ -338,7 +339,11 @@ function _setSyncDot(st){
   });
 }
 async function _fsSet(c,id,d){_setSyncDot('saving');await setDoc(doc(_db,c,id),d);_setSyncDot('live');}
-async function _fsUpd(c,id,d){_setSyncDot('saving');await updateDoc(doc(_db,c,id),d);_setSyncDot('live');}
+let _dbReady=false; // true after first confirmed players snapshot
+async function _fsUpd(c,id,d){
+  if(!_dbReady){console.error('[NINELIVES] Write blocked — DB not confirmed ready');return;}
+  _setSyncDot('saving');await updateDoc(doc(_db,c,id),d);_setSyncDot('live');
+}
 async function _fsDel(c,id){_setSyncDot('saving');await deleteDoc(doc(_db,c,id));_setSyncDot('live');}
 async function _fsCfg(d){_setSyncDot('saving');await updateDoc(_cfgDoc(),d);_setSyncDot('live');}
 
@@ -2068,8 +2073,10 @@ function renderASettings(){
     </div>
     <div class="card">
       <div style="font-weight:500;margin-bottom:8px;color:var(--red)">Danger zone</div>
-      <div style="font-size:13px;color:var(--text-dim);margin-bottom:10px">Wipe all bets. Player balances NOT affected.</div>
-      <button class="btn btn-sm btn-danger" onclick="clearAllBets()">Wipe all bets</button>
+      <div style="font-size:13px;color:var(--text-dim);margin-bottom:6px">Wipe all bets. Player balances NOT affected.</div>
+      <button class="btn btn-sm btn-danger" onclick="clearAllBets()" style="margin-bottom:12px">Wipe all bets</button>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:6px">Kill stale sessions — anyone with an old cached version open will be force-reloaded.</div>
+      <button class="btn btn-sm btn-danger" onclick="forceReloadAllTabs()">⟳ Force reload all sessions</button>
     </div>`;
 }
 
@@ -2177,6 +2184,12 @@ function exportData(){
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='ninelives_semis_'+new Date().toISOString().slice(0,10)+'.json';a.click();
 }
+async function forceReloadAllTabs(){
+  if(!confirm('Force all open sessions to reload the latest version?\n\nAnyone on the site will be refreshed within 3 seconds. This kills stale cached sessions that may cause balance resets.'))return;
+  await _fsCfg({requiredVersion:'20260603-0602'});
+  alert('Done — all stale sessions will reload within 3 seconds.');
+}
+
 async function clearAllBets(){
   if(!confirm('Wipe ALL bets from Firestore? This cannot be undone.'))return;
   const snap=await getDocs(_col.bets());
@@ -2201,6 +2214,7 @@ function subscribeAll(){
   _unsubs.push(onSnapshot(_col.players(),snap=>{
     S.players=snap.docs.map(d=>({id:d.id,...d.data()}));
     S.players.sort((a,b)=>a.name.localeCompare(b.name));
+    if(snap.docs.length>0) _dbReady=true;
     refreshCurrentView();
   }));
   _unsubs.push(onSnapshot(_col.matches(),snap=>{
@@ -2314,7 +2328,7 @@ Object.assign(globalThis,{
   renderLiveBets, _toggleBets, _toggleCat, _tcP, _tcA, _tcLB,
   renderACorrections, setCorrView, loadCorrBets, saveBetEdit, voidBet, hardDeleteBet,
   saveDiscordWebhook, testDiscordWebhook,
-  resetPin, exportData, clearAllBets,
+  resetPin, exportData, clearAllBets, forceReloadAllTabs,
   previewJsonRestore, applyJsonRestore,
 });
 
@@ -2324,6 +2338,19 @@ async function boot(){
     document.getElementById('loading-msg').textContent='Loading event data...';
     await initDefault();
     subscribeAll();
+    // Check for stale tab — if Firestore config has a newer requiredVersion, force reload
+    setTimeout(async()=>{
+      try{
+        const cfgSnap=await getDoc(_cfgDoc());
+        if(cfgSnap.exists()){
+          const req=cfgSnap.data().requiredVersion||'';
+          if(req && req>'20260603-0602'){
+            console.warn('[NINELIVES] Stale tab — reloading to required version '+req);
+            window.location.reload(true);
+          }
+        }
+      }catch(e){}
+    },3000);
     await new Promise(r=>setTimeout(r,900));
     populateDropdown();
     buildKeypad('pin-keypad',pinKey);
